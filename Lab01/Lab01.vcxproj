@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="..\AVTmathLib.h" />
     <ClInclude Include="..\basic_geometry.h" />
+    <ClInclude Include="..\camera.h" />
     <ClInclude Include="..\Car.h" />
     <ClInclude Include="..\cube.h" />
     <ClInclude Include="..\LightSource.h" />
@@ -33,6 +34,7 @@
   <ItemGroup>
     <ClCompile Include="..\AVTmathLib.cpp" />
     <ClCompile Include="..\basic_geometry.cpp" />
+    <ClCompile Include="..\camera.cpp" />
     <ClCompile Include="..\Car.cpp" />
     <ClCompile Include="..\lightDemo.cpp" />
     <ClCompile Include="..\LightSource.cpp" />

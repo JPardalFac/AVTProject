@@ -3,7 +3,6 @@
 #include "LightSource.h"
 #include "Wheel.h"
 
-
 class Car : public Object {
 
 private:
