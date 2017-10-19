@@ -1,4 +1,4 @@
-
+#pragma once
 #define MAX_TEXTURES 4
 
 struct Material{

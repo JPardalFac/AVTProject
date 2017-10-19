@@ -14,7 +14,8 @@ Basic Revolution Geometry
 #include <assert.h>
 #include <stdlib.h>
 #include <vector>
-
+#include <sstream>
+#include <iostream>
 // include GLEW to access OpenGL 3.3 functions
 #include <GL/glew.h>
 
@@ -73,7 +74,7 @@ void createQuad(float size_x, float size_y) {
 }
 
 void createCube() {
-
+	std::cout <<"s " << objId << std::endl;
 	mesh[objId].numIndexes = faceCount *3;
 
 	glGenVertexArrays(1, &(mesh[objId].vao));
@@ -115,6 +116,7 @@ void createSphere(float radius, int divisions) {
 
 void createTorus(float innerRadius, float outerRadius, int rings, int sides) {
 
+	std::cout << "t: "<<objId << std::endl;
 	float tubeRadius = (outerRadius - innerRadius) * 0.5f;
 	float *p = circularProfile(-3.14159f, 3.14159f, tubeRadius, sides, innerRadius + tubeRadius);
 	computeVAO(sides+1, p+2, p, rings, 0.0f);

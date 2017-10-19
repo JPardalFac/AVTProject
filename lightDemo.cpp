@@ -11,8 +11,8 @@
 //
 
 #include <math.h>
-#include <iostream>
 #include <sstream>
+#include <iostream>
 
 #include <string>
 #include <math.h> 
@@ -27,7 +27,11 @@
 #include "AVTmathLib.h"
 #include "VertexAttrDef.h"
 #include "basic_geometry.h"
+#include "Car.h"
+#include "Table.h"
+#include "LightSource.h"
 
+#define PI 3.1415289
 #define CAPTION "AVT Light Demo"
 
 int WindowHandle = 0;
@@ -43,22 +47,11 @@ const int numObjs = 10;
 struct MyMesh mesh[numObjs];
 int objId = 0; //id of the object mesh - to be used as index of mesh: mesh[objID] means the current mesh
 
-//wheels deviations from car body
-float dev = 0.5f;
-/*float xpos[4] = {0.5f+dev,0.5f+dev,-0.5f+dev,-0.5f+dev};
-float ypos[4] = { 0.5f+dev,-0.5f+dev,0.5f+dev,-0.5f+dev };*/
 
-
-float xpos[4] = { 0.5f ,0.5f ,-0.5f,-0.5f  };
-float ypos[4] = { 0.5f ,-0.5f ,0.5f,-0.5f  };
-
-//car pos and rot
-float currentPos[3] = {.5f, .5f, -.5f};
-float currentRot = 0;
-float currentRotAxis[3] = {0.0f,1.0f,0.0f};
-
+Car* car;
+Table* table;
+LightSource point;
 enum direction { back, forward, left, right };
-float speed = 0.5f;
 bool move_forward = false, move_back = false, rot_left = false, rot_right = false;
 
 //External array storage defined in AVTmathLib.cpp
@@ -74,6 +67,13 @@ GLint pvm_uniformId;
 GLint vm_uniformId;
 GLint normal_uniformId;
 GLint lPos_uniformId;
+GLint lSpotDir_uniformId;
+GLint lSpotCutOff_uniformId;
+GLint numLights_uniformId;
+GLint spotOn_uniformId;
+
+// Lights variables
+bool spotLightsOn = true, canChangeSpot = true;
 
 // Cameras Position
 float camX, camY, camZ;
@@ -90,18 +90,17 @@ float r = 10.0f;
 // Frame counting and FPS computation
 long myTime, timebase = 0, frame = 0;
 char s[32];
-float lightPos[4] = { 4.0f, 6.0f, 2.0f, 1.0f };
+
 
 //test variables
 int angle = 0;
 
 void Timer(int value)
 {
-	angle += 2;
+	angle += 1;
 	glutPostRedisplay();
 	glutTimerFunc(100, Timer, 0);
 }
-
 
 void timer(int value)
 {
@@ -145,39 +144,21 @@ void changeSize(int w, int h) {
 // Render stufff
 //
 
-void moveCar(int direction) {
-	float dx, dy;
-	switch (direction) {
-	case back:
-		/*dx = (double)(cos(currentRot) * speed);
-		dy = (double)(sin(currentRot) * speed);
-		currentPos[0] += dx;
-		currentPos[2] += dy;*/
-		currentPos[2] += speed;
-		break;
-	case forward:/*
-		dx = (double)(cos(currentRot) * speed);
-		dy = (double)(sin(currentRot) * speed);
-		currentPos[0] -= dx;
-		currentPos[2] -= dy;*/
-		currentPos[2] -= speed;
-		break;
-	case left:
-		currentRot += 1;
-		break;
-	case right:
-		currentRot -= 1;
-		break;
-	}
-	std::cout << currentRot;
+void checkMovements() {
+	if (move_forward) car->move(forward);
+	else if (move_back) car->move(back);
+	if (rot_left) car->rotate(left);
+	else if (rot_right) car->rotate(right);
+
 }
 
-void checkMovements() {
-	if (move_forward) moveCar(forward);
-	else if (move_back) moveCar(back);
-	if (rot_left) moveCar(left);
-	else if (rot_right) moveCar(right);
-
+void checkHeadlights() {
+	if (spotLightsOn) {
+		glUniform1i(spotOn_uniformId, 1);
+	}
+	else {
+		glUniform1i(spotOn_uniformId, 0);
+	}
 }
 
 void sendMaterial(int index) {
@@ -215,10 +196,8 @@ void renderScene(void) {
 	loadIdentity(VIEW);
 	loadIdentity(MODEL);
 	// set the camera using a function similar to gluLookAt
-	//lookAt(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
-	//std::cout << currentPos[0];
-	lookAt(currentPos[0] - 5, currentPos[1] + 3, currentPos[2],
-		    currentPos[0] + 6, currentPos[1], currentPos[2],
+	lookAt(car->position[0] - 5, car->position[1] + 3, car->position[2],
+		car->position[0] + 6, car->position[1], car->position[2],
 			1, 0, 0);
 	// use our shader
 	glUseProgram(shader.getProgramIndex());
@@ -226,46 +205,61 @@ void renderScene(void) {
 	//send the light position in eye coordinates
 
 		//glUniform4fv(lPos_uniformId, 1, lightPos); //efeito capacete do mineiro, ou seja lighPos foi definido em eye coord 
-
-	float res[4];
-	multMatrixPoint(VIEW, lightPos, res);   //lightPos definido em World Coord so is converted to eye space
-	glUniform4fv(lPos_uniformId, 1, res);
-
 	checkMovements();
+	checkHeadlights();
+	float res[4];
+	glUniform1i(numLights_uniformId,(GLint)2);
+	for (int i = 0; i < 2; i++) {
+		multMatrixPoint(VIEW, car->headlights[i]->l_position, res);		
+		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_pos").c_str()), 1, res);
+		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_spotDir").c_str()), 1, car->headlights[i]->direction);
+		glUniform1f(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_cutoff").c_str()), car->headlights[i]->spot_cutoff);
+		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
 
-	//draw car body
-	sendMaterial(0);
+		std::cout << car->headlights[i]->direction[0] << ", " << car->headlights[i]->direction[1] << ", " << car->headlights[i]->direction[2] << std::endl;
+
+	}
+
+	//sendMaterial(5);
+	//pushMatrix(MODEL);
+	//translate(MODEL, 1.f, 0.5f, 0);
+	//sendMatrices();
+	//drawObj(5);
+	//popMatrix(MODEL);
+
+	//float pres[4];
+	//multMatrixPoint(VIEW, point.position, pres);   //lightPos definido em World Coord so is converted to eye space
+	//glUniform1i(lType_uniformId, (GLint)0);
+	//glUniform4fv(lPos_uniformId, 1, pres);
+
+	//draw car body	
+	sendMaterial(car->objId);
 	pushMatrix(MODEL);
-	translate(MODEL, currentPos[0] , currentPos[1], currentPos[2]);
-	rotate(MODEL, currentRot, currentRotAxis[0], currentRotAxis[1], currentRotAxis[2]);
-	//rotate(MODEL,90,0,90,0);
+	translate(MODEL,car->position[0],car->position[1],car->position[2]);
+	rotate(MODEL,car->rotation,car->rotationAxis[0],car->rotationAxis[1],car->rotationAxis[2]);
 	sendMatrices();
-	drawObj(0);
+	drawObj(car->objId);
 
 	//draw car wheels
-	int x=0, y=0;
-	for (int i = 4; i >= 1; i--) {
-
+	for (int i = 0; i < 4; i++) {
+		Wheel*w = car->wheels[i];
 		pushMatrix(MODEL);
-		sendMaterial(i);
-		translate(MODEL, xpos[x], 0.0f, ypos[y]);
-		rotate(MODEL, 90,0,0,1);
+		sendMaterial(w->objId);
+		translate(MODEL, w->position[0], w->position[1], w->position[2]);
+		rotate(MODEL,w->currentRot,w->movementRotAxis[0], w->movementRotAxis[1], w->movementRotAxis[2]);
+		rotate(MODEL, w->rotation,w->rotationAxis[0],w->rotationAxis[1],w->rotationAxis[2]);
 		sendMatrices();
-		drawObj(i);
-
+		drawObj(w->objId);
 		popMatrix(MODEL);
-
-		x++;
-		y++;
 
 	}
 	//draw table
 	popMatrix(MODEL);
-	sendMaterial(5);
-	translate(MODEL, 2.0f, -0.1f, 2.0f);
-	rotate(MODEL,-90,1,0,0);
+	sendMaterial(table->objId);
+	translate(MODEL, table->position[0], table->position[1], table->position[2]);
+	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
 	sendMatrices();
-	drawObj(5);
+	drawObj(table->objId);
 	glutSwapBuffers();
 }
 
@@ -306,6 +300,12 @@ void processKeys(unsigned char key, int xx, int yy)
 		rot_left = false; 
 		rot_right = true; 
 		break;
+	case 'h':
+		if (canChangeSpot) {
+			spotLightsOn = !spotLightsOn;
+			canChangeSpot = false;
+		}
+		break;
 	}
 
 }
@@ -325,6 +325,10 @@ void processKeysUp(unsigned char key, int xx, int yy)
 		break;
 	case 'p':
 		rot_right = false;
+		break;
+	case 'h':
+
+		canChangeSpot = true;
 		break;
 	}
 
@@ -431,8 +435,8 @@ GLuint setupShaders() {
 
 	// Shader for models
 	shader.init();
-	shader.loadShader(VSShaderLib::VERTEX_SHADER, "shaders\\pointlight.vert");
-	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "shaders\\pointlight.frag");
+	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight.vert");
+	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight.frag");
 
 	// set semantics for the shader variables
 	glBindFragDataLocation(shader.getProgramIndex(), 0, "colorOut");
@@ -445,11 +449,66 @@ GLuint setupShaders() {
 	pvm_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_pvm");
 	vm_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_viewModel");
 	normal_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_normal");
-	lPos_uniformId = glGetUniformLocation(shader.getProgramIndex(), "l_pos");
+	numLights_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights");
+	spotOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "spotOn");
 
 	printf("InfoLog for Hello World Shader\n%s\n\n", shader.getAllInfoLogs().c_str());
 
 	return(shader.isProgramLinked());
+}
+
+void createCar2() {
+	car = new Car();
+	car->init(0, new float[3]{ .5f, .5f, -.5f }, new float[3]{ 0,1,0 }, 0);
+	//car.setColor(mesh);
+	objId = car->objId;
+	memcpy(mesh[car->objId].mat.ambient, car->amb, 4 * sizeof(float));
+	memcpy(mesh[car->objId].mat.diffuse, car->diff, 4 * sizeof(float));
+	memcpy(mesh[car->objId].mat.specular, car->spec, 4 * sizeof(float));
+	memcpy(mesh[car->objId].mat.emissive, car->emissive, 4 * sizeof(float));
+	mesh[car->objId].mat.shininess = car->shininess;
+	mesh[car->objId].mat.texCount = car->texcount;
+	createCube();
+
+	for (int i = 0; i < 4; i++) {
+		Wheel* w = car->wheels[i];
+		objId = w->objId;
+		memcpy(mesh[w->objId].mat.ambient, w->amb, 4 * sizeof(float));
+		memcpy(mesh[w->objId].mat.diffuse, w->diff, 4 * sizeof(float));
+		memcpy(mesh[w->objId].mat.specular, w->spec, 4 * sizeof(float));
+		memcpy(mesh[w->objId].mat.emissive, w->emissive, 4 * sizeof(float));
+		mesh[w->objId].mat.shininess = w->shininess;
+		mesh[w->objId].mat.texCount = w->texcount;
+		createTorus(w->initValues[0], w->initValues[1], w->initValues[2], w->initValues[3]);
+	}
+	objId++;
+	memcpy(mesh[objId].mat.ambient, car->amb, 4 * sizeof(float));
+	memcpy(mesh[objId].mat.diffuse, car->diff, 4 * sizeof(float));
+	memcpy(mesh[objId].mat.specular, car->spec, 4 * sizeof(float));
+	memcpy(mesh[objId].mat.emissive, car->emissive, 4 * sizeof(float));
+	mesh[objId].mat.shininess = car->shininess;
+	mesh[objId].mat.texCount = car->texcount;
+	createCube();
+	//createTorus(0.1f, 0.2f, 15, 5);
+		//	
+
+
+}
+
+void createTable() {
+	float rot = -90;
+	float rotAxis[3] = { 1.0f,0.0f,0.0f };
+	float pos[3] = {2,-0.1f,2};
+	objId++;
+	table = new Table();
+	table->init(objId,pos,rotAxis,rot);
+	memcpy(mesh[table->objId].mat.ambient, table->amb,4*sizeof(float));
+	memcpy(mesh[table->objId].mat.diffuse, table->diff,4*sizeof(float));
+	memcpy(mesh[table->objId].mat.specular, table->spec,4*sizeof(float));
+	memcpy(mesh[table->objId].mat.emissive, table->emissive,4*sizeof(float));
+	mesh[table->objId].mat.shininess = table->shininess;
+	mesh[table->objId].mat.texCount = table->texcount;
+	createQuad(table->x,table->y);
 }
 
 void createCar() {
@@ -468,7 +527,7 @@ void createCar() {
 	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
 	mesh[objId].mat.shininess = shininess;
 	mesh[objId].mat.texCount = texcount;
-	createQuad(1,1);
+	createCube();
 
 	//WHEELS//	
 	objId = 1;
@@ -508,6 +567,11 @@ void createCar() {
 	createTorus(0.1, 0.2, 15, 5);
 }
 
+void createLights() {
+	point = LightSource();
+	point.setPoint(new float[4]{ 4.0f, 6.0f, 2.0f, 1.0f });
+}
+
 // ------------------------------------------------------------
 //
 // Model loading and OpenGL setup
@@ -520,26 +584,10 @@ void init()
 	camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
 	camY = r *   						     sin(beta * 3.14f / 180.0f);
 
-
-	float amb[] = { 0.2f, 0.15f, 0.1f, 1.0f };
-	float diff[] = { 0.8f, 0.6f, 0.4f, 1.0f };
-	float spec[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-	float emissive[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	float shininess = 100.0f;
-	int texcount = 0;
 	
-	createCar();
-
-	//table
-	objId=5;
-	memcpy(mesh[objId].mat.ambient, amb,4*sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff,4*sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec,4*sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive,4*sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createQuad(10,10);
-
+	createCar2();
+	createTable();
+	createLights();
 
 	// some GL settings
 	glEnable(GL_DEPTH_TEST);
