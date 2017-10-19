@@ -30,6 +30,7 @@
 #include "Car.h"
 #include "Table.h"
 #include "LightSource.h"
+#include "TGA.h"
 
 #define PI 3.1415289
 #define CAPTION "AVT Light Demo"
@@ -71,9 +72,13 @@ GLint lSpotDir_uniformId;
 GLint lSpotCutOff_uniformId;
 GLint numLights_uniformId;
 GLint spotOn_uniformId;
+GLuint TextureArray[3];
 
 // Lights variables
 bool spotLightsOn = true, canChangeSpot = true;
+
+// Interface variables
+bool pause = false, canPause = true;
 
 // Cameras Position
 float camX, camY, camZ;
@@ -306,6 +311,12 @@ void processKeys(unsigned char key, int xx, int yy)
 			canChangeSpot = false;
 		}
 		break;
+	case 's':
+		if (canPause) {
+			pause = true;
+			canPause = false;
+		}
+		break;
 	}
 
 }
@@ -327,8 +338,10 @@ void processKeysUp(unsigned char key, int xx, int yy)
 		rot_right = false;
 		break;
 	case 'h':
-
 		canChangeSpot = true;
+		break;
+	case 's':
+		canPause = true;
 		break;
 	}
 
