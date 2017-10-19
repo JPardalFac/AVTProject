@@ -72,6 +72,9 @@ GLint lSpotDir_uniformId;
 GLint lSpotCutOff_uniformId;
 GLint numLights_uniformId;
 GLint spotOn_uniformId;
+
+
+GLint tex_loc, tex_loc1, tex_loc2, texMode_uniformId;
 GLuint TextureArray[3];
 
 // Lights variables
@@ -179,6 +182,7 @@ void sendMaterial(int index) {
 }
 
 void drawObj(int index) {
+	glUniform1i(texMode_uniformId, 0); 
 	glBindVertexArray(mesh[index].vao);
 	glDrawElements(mesh[index].type, mesh[index].numIndexes, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -207,9 +211,12 @@ void renderScene(void) {
 	// use our shader
 	glUseProgram(shader.getProgramIndex());
 
-	//send the light position in eye coordinates
 
-		//glUniform4fv(lPos_uniformId, 1, lightPos); //efeito capacete do mineiro, ou seja lighPos foi definido em eye coord 
+	//textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, TextureArray[0]);
+	glUniform1i(tex_loc, 0);
+
 	checkMovements();
 	checkHeadlights();
 	float res[4];
@@ -220,8 +227,6 @@ void renderScene(void) {
 		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_spotDir").c_str()), 1, car->headlights[i]->direction);
 		glUniform1f(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_cutoff").c_str()), car->headlights[i]->spot_cutoff);
 		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
-
-		std::cout << car->headlights[i]->direction[0] << ", " << car->headlights[i]->direction[1] << ", " << car->headlights[i]->direction[2] << std::endl;
 
 	}
 
@@ -265,6 +270,8 @@ void renderScene(void) {
 	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
 	sendMatrices();
 	drawObj(table->objId);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glutSwapBuffers();
 }
 
@@ -448,8 +455,8 @@ GLuint setupShaders() {
 
 	// Shader for models
 	shader.init();
-	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight.vert");
-	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight.frag");
+	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight_text.vert");
+	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight_text.frag");
 
 	// set semantics for the shader variables
 	glBindFragDataLocation(shader.getProgramIndex(), 0, "colorOut");
@@ -464,6 +471,8 @@ GLuint setupShaders() {
 	normal_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_normal");
 	numLights_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights");
 	spotOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "spotOn");
+	tex_loc = glGetUniformLocation(shader.getProgramIndex(), "texmap");
+	texMode_uniformId = glGetUniformLocation(shader.getProgramIndex(), "texMode"); // different modes of texturing
 
 	printf("InfoLog for Hello World Shader\n%s\n\n", shader.getAllInfoLogs().c_str());
 
@@ -524,65 +533,17 @@ void createTable() {
 	createQuad(table->x,table->y);
 }
 
-void createCar() {
-
-	float amb[] = { 0.2f, 0.15f, 0.1f, 1.0f };
-	float diff[] = { 0.8f, 0.6f, 0.4f, 1.0f };
-	float spec[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-	float emissive[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	float shininess = 100.0f;
-	int texcount = 0;
-
-	objId = 0;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createCube();
-
-	//WHEELS//	
-	objId = 1;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createTorus(0.1, 0.2, 15, 5);
-
-	objId = 2;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createTorus(0.1, 0.2, 15, 5);
-
-	objId = 3;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createTorus(0.1, 0.2, 15, 5);
-
-	objId = 4;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createTorus(0.1, 0.2, 15, 5);
-}
 
 void createLights() {
 	point = LightSource();
 	point.setPoint(new float[4]{ 4.0f, 6.0f, 2.0f, 1.0f });
+}
+
+void createTextures() {
+	glGenTextures(3, TextureArray);
+	TGA_Texture(TextureArray, "..//stone.tga", 0);
+	TGA_Texture(TextureArray, "..//checker.tga", 1);
+	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
 }
 
 // ------------------------------------------------------------
@@ -597,7 +558,7 @@ void init()
 	camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
 	camY = r *   						     sin(beta * 3.14f / 180.0f);
 
-	
+	createTextures();
 	createCar2();
 	createTable();
 	createLights();

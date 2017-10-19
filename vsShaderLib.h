@@ -156,6 +156,10 @@ public:
 	/// returns true if linked, false otherwise
 	bool isProgramLinked();
 
+	void Use();
+
+	void UnUse();
+
 
 protected:
 
@@ -231,6 +235,8 @@ protected:
 
 	/// determines the size in bytes based on the OpenGL type
 	int typeSize(int type);
+
+
 
 	/// aux function to read the shader's source code from file
 	char *textFileRead(std::string fileName);

@@ -890,3 +890,12 @@ VSShaderLib::typeSize(int type) {
 	return s;
 }
 
+void VSShaderLib::Use() {
+	glUseProgram(pProgram);
+}
+
+void VSShaderLib::UnUse() {
+	glUseProgram(0);
+}
+
+
