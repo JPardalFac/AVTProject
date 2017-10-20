@@ -13,6 +13,7 @@
 #include <math.h>
 #include <sstream>
 #include <iostream>
+#include <stdio.h>  
 
 #include <string>
 #include <math.h> 
@@ -31,6 +32,8 @@
 #include "Table.h"
 #include "LightSource.h"
 #include "TGA.h"
+#include "TextureMappedFont.h"
+#include <cassert>
 
 #define PI 3.1415289
 #define CAPTION "AVT Light Demo"
@@ -77,11 +80,18 @@ GLint spotOn_uniformId;
 GLint tex_loc, tex_loc1, tex_loc2, texMode_uniformId;
 GLuint TextureArray[3];
 
+// Font variables
+/**TEXTUREMAPPEDFONT*/
+TextureMappedFont* font1;
+TextureMappedFont* font2;
+char l_string[MAX_PATH] = { '\0' };
+
 // Lights variables
 bool spotLightsOn = true, canChangeSpot = true;
 
 // Interface variables
 bool pause = false, canPause = true;
+int numberLifes = 5, points = 0;
 
 // Cameras Position
 float camX, camY, camZ;
@@ -153,11 +163,12 @@ void changeSize(int w, int h) {
 //
 
 void checkMovements() {
-	if (move_forward) car->move(forward);
-	else if (move_back) car->move(back);
-	if (rot_left) car->rotate(left);
-	else if (rot_right) car->rotate(right);
-
+	if (!pause) {
+		if (move_forward) car->move(forward);
+		else if (move_back) car->move(back);
+		if (rot_left) car->rotate(left);
+		else if (rot_right) car->rotate(right);
+	}
 }
 
 void checkHeadlights() {
@@ -209,8 +220,10 @@ void renderScene(void) {
 		car->position[0] + 6, car->position[1], car->position[2],
 			1, 0, 0);
 	// use our shader
-	glUseProgram(shader.getProgramIndex());
-
+	shader.Use();
+	//std::cout << "main shader: " << shader.vertexFile<< std::endl;
+	//std::cout << "font1 shader: " << font1->_shader.vertexFile << std::endl;
+	//std::cout << "font2 shader: " << font2->_shader.getProgramIndex() << std::endl;
 
 	//textures
 	glActiveTexture(GL_TEXTURE0);
@@ -229,18 +242,6 @@ void renderScene(void) {
 		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
 
 	}
-
-	//sendMaterial(5);
-	//pushMatrix(MODEL);
-	//translate(MODEL, 1.f, 0.5f, 0);
-	//sendMatrices();
-	//drawObj(5);
-	//popMatrix(MODEL);
-
-	//float pres[4];
-	//multMatrixPoint(VIEW, point.position, pres);   //lightPos definido em World Coord so is converted to eye space
-	//glUniform1i(lType_uniformId, (GLint)0);
-	//glUniform4fv(lPos_uniformId, 1, pres);
 
 	//draw car body	
 	sendMaterial(car->objId);
@@ -270,7 +271,28 @@ void renderScene(void) {
 	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
 	sendMatrices();
 	drawObj(table->objId);
+	shader.UnUse();
 
+	/**TEXTUREMAPPEDFONT*/
+	/*font2->DrawString(100, 100, "car", 1);*/
+	/*HUD*/
+	std::string s = std::to_string(numberLifes);
+	char const *pchar = s.c_str();
+
+	std::string s1 = std::to_string(points);
+	char const *pchar1 = s1.c_str();
+
+	sprintf_s(l_string, "Lifes %s", pchar);
+	font1->DrawString(WinX/2-60, WinY-20, l_string);
+	sprintf_s(l_string, "Points %s", pchar1);
+	font1->DrawString(WinX/2+60, WinY-20, l_string);
+
+	if (pause) {
+		sprintf_s(l_string, "Pause %s", "");
+		font1->DrawString(WinX / 2, WinY / 2, l_string);
+	}
+	//std::cout << "main shader:  " <<shader.getProgramIndex() << std::endl;
+	//std::cout << "font2 shader:  " << font2->_shader.getProgramIndex() << std::endl;
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glutSwapBuffers();
 }
@@ -320,7 +342,7 @@ void processKeys(unsigned char key, int xx, int yy)
 		break;
 	case 's':
 		if (canPause) {
-			pause = true;
+			pause = !pause;
 			canPause = false;
 		}
 		break;
@@ -561,14 +583,18 @@ void init()
 	createTextures();
 	createCar2();
 	createTable();
-	createLights();
+	createLights(); 
+
 
 	// some GL settings
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+	/**TEXTUREMAPPEDFONT*/
+	font1 = new TextureMappedFont("..//font1.bmp");
+	font2 = new TextureMappedFont("..//font2.bmp");
 }
 
 // ------------------------------------------------------------

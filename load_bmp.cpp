@@ -25,7 +25,7 @@
  *
  *********************************************************/
 
-int num_texture=-1; //Counter to keep track of the last loaded texture
+int num_texture=2; //Counter to keep track of the last loaded texture
 
 
 

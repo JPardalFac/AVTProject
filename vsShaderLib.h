@@ -65,7 +65,7 @@ public:
 		FRAGMENT_SHADER,
 		COUNT_SHADER_TYPE
 	};
-
+	std::string vertexFile;
 	/// Just a helper define
 	static const int MAX_TEXTURES = 8;
 

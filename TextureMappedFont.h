@@ -16,7 +16,7 @@
 #include <string>
 #include "vsShaderLib.h"
 #include "load_bmp.h"
-#include "AVTMathLib.h"
+#include "mat_matr.h"
 
 class TextureMappedFont
 {
@@ -24,6 +24,7 @@ public:
 	TextureMappedFont(void);	
 	TextureMappedFont(const std::string& fontTexture, float fontSize=16.0f);
 	~TextureMappedFont(void);
+	VSShaderLib _shader;
 
     bool Init();
     void DrawString(float x, float y, const std::string& string, bool selected=false );
@@ -35,6 +36,5 @@ private:
     GLuint _vertexBuffer;
     float _fontSize;  
 
-	//matrix_4x4_type P; //orthographic projection matrix
-    VSShaderLib _shader;
+	matrix_4x4_type P; //orthographic projection matrix
 };

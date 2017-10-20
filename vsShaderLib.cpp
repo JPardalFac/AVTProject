@@ -114,6 +114,7 @@ VSShaderLib::loadShader(VSShaderLib::ShaderType st, std::string fileName) {
 
 		free(s);
 	}
+	vertexFile = fileName;
 }
 
 

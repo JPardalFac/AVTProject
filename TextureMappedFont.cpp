@@ -13,9 +13,8 @@
 
 #include "TextureMappedFont.h"
 #include <cassert>
+#include <iostream>
 #define GL_CHECK_ERRORS assert(glGetError()== GL_NO_ERROR);
-extern int screen_width;
-extern int screen_height;
 
 TextureMappedFont::TextureMappedFont(void)
 {
@@ -35,19 +34,21 @@ TextureMappedFont::TextureMappedFont(const std::string& textureName, float fontS
 {  
 	_textureID = LoadBMP(const_cast<char*>(textureName.c_str()));    
 	_shader.init();
-	_shader.loadShader(VSShaderLib::VERTEX_SHADER,"font.vert");
-	_shader.loadShader(VSShaderLib::FRAGMENT_SHADER,"font.frag");
+	_shader.loadShader(VSShaderLib::VERTEX_SHADER,"..//shaders//font.vert");
+	_shader.loadShader(VSShaderLib::FRAGMENT_SHADER,"..//shaders//font.frag");
+	glLinkProgram(_shader.getProgramIndex());
 	//_shader.CreateAndLinkProgram();
-	GL_CHECK_ERRORS
+	//GL_CHECK_ERRORS
+
 	_shader.Use();	
-		glBindFragDataLocation(_shader.getProgramIndex(), 0, "colorOut");
 		glBindAttribLocation(_shader.getProgramIndex(), 0, "vVertex");
-		glBindAttribLocation(_shader.getProgramIndex(), 1, "vTextCoord");	
+		glBindAttribLocation(_shader.getProgramIndex(), 1, "vTextCoord");
+
 		glUniform1i(glGetUniformLocation(_shader.getProgramIndex(), "texture0"),0);
 		glUniform1i(glGetUniformLocation(_shader.getProgramIndex(), "selected"),0);
 	_shader.UnUse();
     _fontSize = fontSize;
-
+	
 	Init();
 }
 
@@ -62,7 +63,7 @@ bool TextureMappedFont::Init()
 
 	std::string vertex = "vVertex";
 	std::string texcoord = "vTexCoord";
-	GL_CHECK_ERRORS
+	//GL_CHECK_ERRORS
 
 	glGenVertexArrays(1, &_vaoID);
 	glBindVertexArray(_vaoID);
@@ -73,7 +74,7 @@ bool TextureMappedFont::Init()
     glVertexAttribPointer(glGetAttribLocation(_shader.getProgramIndex(), vertex.c_str()), 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 
-	GL_CHECK_ERRORS
+	//GL_CHECK_ERRORS
 
     //Just initialize with something for now, the tex coords are updated
     //for each character printed
@@ -90,10 +91,11 @@ bool TextureMappedFont::Init()
     glEnableVertexAttribArray(glGetAttribLocation(_shader.getProgramIndex(), texcoord.c_str()));
     glVertexAttribPointer(glGetAttribLocation(_shader.getProgramIndex(), texcoord.c_str()), 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-	GL_CHECK_ERRORS
+	//GL_CHECK_ERRORS
 	//set the orthographic projection matrix
-	//Orthographic(0.f, float(screen_width), 0.f , float(screen_height),-1.f,1.f, P);
-    return true;
+	Orthographic(0.f, float(640), 0.f , float(480),-1.f,1.f, P);
+	
+    return (_shader.isProgramLinked());
 }
 
 
@@ -103,7 +105,7 @@ void TextureMappedFont::DrawString(float x, float y, const std::string& str, boo
    // static float modelviewMatrix[16];
     //static float projectionMatrix[16];
 
-	GL_CHECK_ERRORS
+	//GL_CHECK_ERRORS
 	
     GLint test[1];
 	glGetIntegerv(GL_DEPTH_TEST, test);
@@ -115,7 +117,7 @@ void TextureMappedFont::DrawString(float x, float y, const std::string& str, boo
 
     glBindTexture(GL_TEXTURE_2D, _textureID);
  
-	GL_CHECK_ERRORS
+	//GL_CHECK_ERRORS
 
 	matrix_4x4_type translate,I, MV, oldMV, MVP;
 	MatrIdentity_4x4(MV);
@@ -126,10 +128,12 @@ void TextureMappedFont::DrawString(float x, float y, const std::string& str, boo
 	translate[3][0]=x;
 	translate[3][1]=y;
 
+
 	MatrMul_4x4_4x4(translate, I, MV);
 	glBindVertexArray(_vaoID);
    // glTranslatef(x, y, 0.0); //Position our text
-    for(string::size_type i = 0; i < str.size(); ++i) 
+	//std::cout << "str: "<<str << std::endl;
+    for(std::string::size_type i = 0; i < str.size(); ++i) 
     {
 		MatrMul_4x4_4x4(MV, P, MVP);
         const float oneOverSixteen = 1.0f / 16.0f;
@@ -153,14 +157,14 @@ void TextureMappedFont::DrawString(float x, float y, const std::string& str, boo
         glBindBuffer(GL_ARRAY_BUFFER, _texCoordBuffer);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * 8, &texCoords[0]);
 
-       	glUniformMatrix4fv(glGetUniformLocation(_shader.getProgramIndex(), "m_pvm"), 1, GL_FALSE, &MVP[0][0]);
+       	glUniformMatrix4fv(glGetUniformLocation(_shader.getProgramIndex(), "MVP"), 1, GL_FALSE, &MVP[0][0]);
 		glUniform1i(glGetUniformLocation(_shader.getProgramIndex(), "selected"), sel);
 
-		GL_CHECK_ERRORS
+		//GL_CHECK_ERRORS
 
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         
-		GL_CHECK_ERRORS
+		//GL_CHECK_ERRORS
 
 		MatrCopy_4x4(oldMV,MV);
 		matrix_4x4_type t2;
@@ -168,14 +172,14 @@ void TextureMappedFont::DrawString(float x, float y, const std::string& str, boo
 		t2[3][0]=_fontSize * 0.8f;
 		MatrMul_4x4_4x4(t2, oldMV, MV);
 
-		GL_CHECK_ERRORS 
+		//GL_CHECK_ERRORS 
     }  
 	glBindVertexArray(0);
-	GL_CHECK_ERRORS
+	//GL_CHECK_ERRORS
 
 	_shader.UnUse();
 
-	GL_CHECK_ERRORS
+	//GL_CHECK_ERRORS
 
 	//if(test[0])
 		glEnable(GL_DEPTH_TEST);
