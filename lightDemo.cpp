@@ -13,6 +13,7 @@
 #include <math.h>
 #include <sstream>
 #include <iostream>
+#include <stdio.h>  
 
 #include <string>
 #include <math.h> 
@@ -30,6 +31,9 @@
 #include "Car.h"
 #include "Table.h"
 #include "LightSource.h"
+#include "TGA.h"
+#include "TextureMappedFont.h"
+#include <cassert>
 
 #define PI 3.1415289
 #define CAPTION "AVT Light Demo"
@@ -72,8 +76,22 @@ GLint lSpotCutOff_uniformId;
 GLint numLights_uniformId;
 GLint spotOn_uniformId;
 
+
+GLint tex_loc, tex_loc1, tex_loc2, texMode_uniformId;
+GLuint TextureArray[3];
+
+// Font variables
+/**TEXTUREMAPPEDFONT*/
+TextureMappedFont* font1;
+TextureMappedFont* font2;
+char l_string[MAX_PATH] = { '\0' };
+
 // Lights variables
 bool spotLightsOn = true, canChangeSpot = true;
+
+// Interface variables
+bool pause = false, canPause = true;
+int numberLifes = 5, points = 0;
 
 // Cameras Position
 float camX, camY, camZ;
@@ -145,11 +163,12 @@ void changeSize(int w, int h) {
 //
 
 void checkMovements() {
-	if (move_forward) car->move(forward);
-	else if (move_back) car->move(back);
-	if (rot_left) car->rotate(left);
-	else if (rot_right) car->rotate(right);
-
+	if (!pause) {
+		if (move_forward) car->move(forward);
+		else if (move_back) car->move(back);
+		if (rot_left) car->rotate(left);
+		else if (rot_right) car->rotate(right);
+	}
 }
 
 void checkHeadlights() {
@@ -174,6 +193,7 @@ void sendMaterial(int index) {
 }
 
 void drawObj(int index) {
+	glUniform1i(texMode_uniformId, 0); 
 	glBindVertexArray(mesh[index].vao);
 	glDrawElements(mesh[index].type, mesh[index].numIndexes, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -200,11 +220,16 @@ void renderScene(void) {
 		car->position[0] + 6, car->position[1], car->position[2],
 			1, 0, 0);
 	// use our shader
-	glUseProgram(shader.getProgramIndex());
+	shader.Use();
+	//std::cout << "main shader: " << shader.vertexFile<< std::endl;
+	//std::cout << "font1 shader: " << font1->_shader.vertexFile << std::endl;
+	//std::cout << "font2 shader: " << font2->_shader.getProgramIndex() << std::endl;
 
-	//send the light position in eye coordinates
+	//textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, TextureArray[0]);
+	glUniform1i(tex_loc, 0);
 
-		//glUniform4fv(lPos_uniformId, 1, lightPos); //efeito capacete do mineiro, ou seja lighPos foi definido em eye coord 
 	checkMovements();
 	checkHeadlights();
 	float res[4];
@@ -216,21 +241,7 @@ void renderScene(void) {
 		glUniform1f(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_cutoff").c_str()), car->headlights[i]->spot_cutoff);
 		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
 
-		std::cout << car->headlights[i]->direction[0] << ", " << car->headlights[i]->direction[1] << ", " << car->headlights[i]->direction[2] << std::endl;
-
 	}
-
-	//sendMaterial(5);
-	//pushMatrix(MODEL);
-	//translate(MODEL, 1.f, 0.5f, 0);
-	//sendMatrices();
-	//drawObj(5);
-	//popMatrix(MODEL);
-
-	//float pres[4];
-	//multMatrixPoint(VIEW, point.position, pres);   //lightPos definido em World Coord so is converted to eye space
-	//glUniform1i(lType_uniformId, (GLint)0);
-	//glUniform4fv(lPos_uniformId, 1, pres);
 
 	//draw car body	
 	sendMaterial(car->objId);
@@ -260,6 +271,29 @@ void renderScene(void) {
 	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
 	sendMatrices();
 	drawObj(table->objId);
+	shader.UnUse();
+
+	/**TEXTUREMAPPEDFONT*/
+	/*font2->DrawString(100, 100, "car", 1);*/
+	/*HUD*/
+	std::string s = std::to_string(numberLifes);
+	char const *pchar = s.c_str();
+
+	std::string s1 = std::to_string(points);
+	char const *pchar1 = s1.c_str();
+
+	sprintf_s(l_string, "Lifes %s", pchar);
+	font1->DrawString(WinX/2-60, WinY-20, l_string);
+	sprintf_s(l_string, "Points %s", pchar1);
+	font1->DrawString(WinX/2+60, WinY-20, l_string);
+
+	if (pause) {
+		sprintf_s(l_string, "Pause %s", "");
+		font1->DrawString(WinX / 2, WinY / 2, l_string);
+	}
+	//std::cout << "main shader:  " <<shader.getProgramIndex() << std::endl;
+	//std::cout << "font2 shader:  " << font2->_shader.getProgramIndex() << std::endl;
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glutSwapBuffers();
 }
 
@@ -306,6 +340,12 @@ void processKeys(unsigned char key, int xx, int yy)
 			canChangeSpot = false;
 		}
 		break;
+	case 's':
+		if (canPause) {
+			pause = !pause;
+			canPause = false;
+		}
+		break;
 	}
 
 }
@@ -327,8 +367,10 @@ void processKeysUp(unsigned char key, int xx, int yy)
 		rot_right = false;
 		break;
 	case 'h':
-
 		canChangeSpot = true;
+		break;
+	case 's':
+		canPause = true;
 		break;
 	}
 
@@ -435,8 +477,8 @@ GLuint setupShaders() {
 
 	// Shader for models
 	shader.init();
-	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight.vert");
-	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight.frag");
+	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight_text.vert");
+	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight_text.frag");
 
 	// set semantics for the shader variables
 	glBindFragDataLocation(shader.getProgramIndex(), 0, "colorOut");
@@ -451,6 +493,8 @@ GLuint setupShaders() {
 	normal_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_normal");
 	numLights_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights");
 	spotOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "spotOn");
+	tex_loc = glGetUniformLocation(shader.getProgramIndex(), "texmap");
+	texMode_uniformId = glGetUniformLocation(shader.getProgramIndex(), "texMode"); // different modes of texturing
 
 	printf("InfoLog for Hello World Shader\n%s\n\n", shader.getAllInfoLogs().c_str());
 
@@ -511,65 +555,17 @@ void createTable() {
 	createQuad(table->x,table->y);
 }
 
-void createCar() {
-
-	float amb[] = { 0.2f, 0.15f, 0.1f, 1.0f };
-	float diff[] = { 0.8f, 0.6f, 0.4f, 1.0f };
-	float spec[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-	float emissive[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	float shininess = 100.0f;
-	int texcount = 0;
-
-	objId = 0;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createCube();
-
-	//WHEELS//	
-	objId = 1;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createTorus(0.1, 0.2, 15, 5);
-
-	objId = 2;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createTorus(0.1, 0.2, 15, 5);
-
-	objId = 3;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createTorus(0.1, 0.2, 15, 5);
-
-	objId = 4;
-	memcpy(mesh[objId].mat.ambient, amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = shininess;
-	mesh[objId].mat.texCount = texcount;
-	createTorus(0.1, 0.2, 15, 5);
-}
 
 void createLights() {
 	point = LightSource();
 	point.setPoint(new float[4]{ 4.0f, 6.0f, 2.0f, 1.0f });
+}
+
+void createTextures() {
+	glGenTextures(3, TextureArray);
+	TGA_Texture(TextureArray, "..//stone.tga", 0);
+	TGA_Texture(TextureArray, "..//checker.tga", 1);
+	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
 }
 
 // ------------------------------------------------------------
@@ -584,17 +580,21 @@ void init()
 	camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
 	camY = r *   						     sin(beta * 3.14f / 180.0f);
 
-	
+	createTextures();
 	createCar2();
 	createTable();
-	createLights();
+	createLights(); 
+
 
 	// some GL settings
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+	/**TEXTUREMAPPEDFONT*/
+	font1 = new TextureMappedFont("..//font1.bmp");
+	font2 = new TextureMappedFont("..//font2.bmp");
 }
 
 // ------------------------------------------------------------
