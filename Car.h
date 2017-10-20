@@ -12,11 +12,11 @@ private:
 
 
 public:
-	float amb[4] = { 0.2f, 0.15f, 0.1f, 1.0f };
-	float diff[4] = { 0.8f, 0.6f, 0.4f, 1.0f };
-	float spec[4] = { 0.8f, 0.8f, 0.8f, 1.0f };
+	float amb[4] = { 0.3f, 0.0f, 0.0f, 1.0f };
+	float diff[4] = { 0.5f, 0.0f, 0.0f, 1.0f };
+	float spec[4] = { 0.7f, 0.6f, 0.6f, 1.0f };
 	float emissive[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	float shininess = 100;
+	float shininess = 32.0f;
 	int texcount = 0;
 	Wheel* wheels[4];
 	LightSource* headlights[2];
