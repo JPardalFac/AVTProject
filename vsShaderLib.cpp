@@ -114,6 +114,7 @@ VSShaderLib::loadShader(VSShaderLib::ShaderType st, std::string fileName) {
 
 		free(s);
 	}
+	vertexFile = fileName;
 }
 
 
@@ -889,4 +890,13 @@ VSShaderLib::typeSize(int type) {
 	}
 	return s;
 }
+
+void VSShaderLib::Use() {
+	glUseProgram(pProgram);
+}
+
+void VSShaderLib::UnUse() {
+	glUseProgram(0);
+}
+
 

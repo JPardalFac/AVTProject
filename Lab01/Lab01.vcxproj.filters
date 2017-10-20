@@ -43,6 +43,16 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\camera.cpp">
+    <ClCompile Include="..\TGA.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\load_bmp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TextureMappedFont.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mat_matr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -54,9 +64,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\VertexAttrDef.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\vsShaderLib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\basic_geometry.h">
@@ -78,6 +85,19 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\camera.h">
+    <ClInclude Include="..\TGA.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\load_bmp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TextureMappedFont.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\mat_matr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\vsShaderLib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
