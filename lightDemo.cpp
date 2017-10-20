@@ -31,6 +31,13 @@
 #include "Car.h"
 #include "Table.h"
 #include "LightSource.h"
+#include "camera.h"
+
+#define SPOT_LIGHTS 	2
+#define DIRECTIONAL 	1
+#define POINT_LIGHTS 	0 //change this value when pointlights are added to the program
+
+#define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
 #include "TGA.h"
 #include "TextureMappedFont.h"
 #include <cassert>
@@ -43,7 +50,9 @@ int WinX = 640, WinY = 480;
 
 unsigned int FrameCount = 0;
 
-
+float ratio = 0;
+float* pratio = &ratio;
+camera* cam = new camera();
 
 VSShaderLib shader;
 
@@ -75,6 +84,7 @@ GLint lSpotDir_uniformId;
 GLint lSpotCutOff_uniformId;
 GLint numLights_uniformId;
 GLint spotOn_uniformId;
+GLint directionalLightOn_uniformId;
 
 
 GLint tex_loc, tex_loc1, tex_loc2, texMode_uniformId;
@@ -108,6 +118,8 @@ float r = 10.0f;
 // Frame counting and FPS computation
 long myTime, timebase = 0, frame = 0;
 char s[32];
+bool isDirLightOn = true;
+float directionalLightPos[4] = { 4.0f, 6.0f, 2.0f, 0.0f };//switched from the default pointlight(w = 1) to a directional light (w = 0)
 
 
 //test variables
@@ -143,17 +155,15 @@ void refresh(int value)
 //
 
 void changeSize(int w, int h) {
-
-	float ratio;
 	// Prevent a divide by zero, when window is too short
 	if (h == 0)
 		h = 1;
 	// set the viewport to be the entire window
 	glViewport(0, 0, w, h);
 	// set the projection matrix
-	ratio = (1.0f * w) / h;
+	*pratio = (1.0f * w) / h;
 	loadIdentity(PROJECTION);
-	perspective(53.13f, ratio, 0.1f, 1000.0f);
+	cam->updateProjection(pratio);
 }
 
 
@@ -207,6 +217,16 @@ void sendMatrices() {
 	glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
 }
 
+//called when directional light is toggled on/off, sends the new value to the shader
+void sendDirectionalLightToggle()
+{
+	if (isDirLightOn)
+		glUniform1i(directionalLightOn_uniformId, 0);
+	else
+		glUniform1i(directionalLightOn_uniformId, 1);
+	isDirLightOn = !isDirLightOn;
+}
+
 void renderScene(void) {
 
 
@@ -216,9 +236,10 @@ void renderScene(void) {
 	loadIdentity(VIEW);
 	loadIdentity(MODEL);
 	// set the camera using a function similar to gluLookAt
-	lookAt(car->position[0] - 5, car->position[1] + 3, car->position[2],
-		car->position[0] + 6, car->position[1], car->position[2],
-			1, 0, 0);
+	//lookAt(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
+	if (cam->activeCam == cam->MOVINGPERSPECTIVE)
+		cam->sendCamCoords(camX, camY, camZ);
+	cam->updateLookAt(car->position);
 	// use our shader
 	shader.Use();
 	//std::cout << "main shader: " << shader.vertexFile<< std::endl;
@@ -230,17 +251,35 @@ void renderScene(void) {
 	glBindTexture(GL_TEXTURE_2D, TextureArray[0]);
 	glUniform1i(tex_loc, 0);
 
+		//glUniform4fv(lPos_uniformId, 1, directionalLightPos); //efeito capacete do mineiro, ou seja lighPos foi definido em eye coord 
 	checkMovements();
 	checkHeadlights();
 	float res[4];
-	glUniform1i(numLights_uniformId,(GLint)2);
-	for (int i = 0; i < 2; i++) {
+	glUniform1i(numLights_uniformId,(GLint)TOTAL_LIGHTS);
+	for (int i = 0; i < SPOT_LIGHTS; i++) {
 		multMatrixPoint(VIEW, car->headlights[i]->l_position, res);		
 		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_pos").c_str()), 1, res);
 		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_spotDir").c_str()), 1, car->headlights[i]->direction);
 		glUniform1f(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_cutoff").c_str()), car->headlights[i]->spot_cutoff);
 		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
+		//std::cout << car->headlights[i]->direction[0] << ", " << car->headlights[i]->direction[1] << ", " << car->headlights[i]->direction[2] << std::endl;
+	}
+  
+	multMatrixPoint(VIEW, directionalLightPos, res);   //lightPos definido em World Coord so is converted to eye space
+	//glUniform4fv(lPos_uniformId, 1, res);
+	glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(SPOT_LIGHTS) + "].l_pos").c_str()), 1, res);
 
+	//sendMaterial(5);
+	//pushMatrix(MODEL);
+	//translate(MODEL, 1.f, 0.5f, 0);
+	//sendMatrices();
+	//drawObj(5);
+	//popMatrix(MODEL);
+
+	//float pres[4];
+	//multMatrixPoint(VIEW, point.position, pres);   //lightPos definido em World Coord so is converted to eye space
+	//glUniform1i(lType_uniformId, (GLint)0);
+	//glUniform4fv(lPos_uniformId, 1, pres);
 	}
 
 	//draw car body	
@@ -306,7 +345,7 @@ void renderScene(void) {
 
 void processKeys(unsigned char key, int xx, int yy)
 {
-	std::cout << key << std::endl;
+	//std::cout << key << std::endl;
 	switch (key) {
 
 	case 27:
@@ -317,7 +356,7 @@ void processKeys(unsigned char key, int xx, int yy)
 		printf("Camera Spherical Coordinates (%f, %f, %f)\n", alpha, beta, r);
 		break;
 	case 'm': glEnable(GL_MULTISAMPLE); break;
-	case 'n': glDisable(GL_MULTISAMPLE); break;
+	//case 'n': glDisable(GL_MULTISAMPLE); break;
 	case 'a':
 		move_forward = false;
 		move_back = true;
@@ -339,6 +378,22 @@ void processKeys(unsigned char key, int xx, int yy)
 			spotLightsOn = !spotLightsOn;
 			canChangeSpot = false;
 		}
+		break; 
+	case '1':
+		cam->setFixedOrtho();
+		cam->setCameraType(cam->FIXEDORTHO);
+		break;
+
+	case '2':
+		cam->setFixedPerspective(pratio);
+		cam->setCameraType(cam->FIXEDPERSPECTIVE);
+		break;
+	case '3':
+		cam->setMovingPerspective(pratio);
+		cam->setCameraType(cam->MOVINGPERSPECTIVE);
+		break;
+	case 'n':
+		sendDirectionalLightToggle();
 		break;
 	case 's':
 		if (canPause) {
@@ -477,6 +532,9 @@ GLuint setupShaders() {
 
 	// Shader for models
 	shader.init();
+	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight2.vert");
+	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight2.frag");
+  
 	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight_text.vert");
 	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight_text.frag");
 
@@ -491,8 +549,13 @@ GLuint setupShaders() {
 	pvm_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_pvm");
 	vm_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_viewModel");
 	normal_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_normal");
+	//lights
 	numLights_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights");
 	spotOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "spotOn");
+	lPos_uniformId = glGetUniformLocation(shader.getProgramIndex(), "l_pos");
+	directionalLightOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "directionalLightOn");
+
+	glUniform1i(directionalLightOn_uniformId, true);
 	tex_loc = glGetUniformLocation(shader.getProgramIndex(), "texmap");
 	texMode_uniformId = glGetUniformLocation(shader.getProgramIndex(), "texMode"); // different modes of texturing
 
