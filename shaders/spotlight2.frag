@@ -89,7 +89,6 @@ void main() {
 	vec3 e = normalize(DataIn[SPOT_LIGHTS].eye);
 
 	intensity_dir = max(dot(n,l), 0.0);
-
 	
 	if (intensity_dir > 0.0) {
 		vec3 h = normalize(l + e);
@@ -108,6 +107,5 @@ void main() {
 		total_intensity = intensity_point + intensity_spot;
 		total_spec = spec_point + spec_spot;
 	}
-	
 	colorOut = max(total_intensity * mat.diffuse + total_spec, mat.ambient);
 }
