@@ -181,26 +181,7 @@ void checkMovements() {
 	}
 }
 
-void checkHeadlights() {
-	if (spotLightsOn) {
-		glUniform1i(spotOn_uniformId, 1);
-	}
-	else {
-		glUniform1i(spotOn_uniformId, 0);
-	}
-}
 
-//void sendMaterial(int index) {
-//	GLint loc;
-//	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.ambient");
-//	glUniform4fv(loc, 1, mesh[index].mat.ambient);
-//	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.diffuse");
-//	glUniform4fv(loc, 1, mesh[index].mat.diffuse);
-//	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.specular");
-//	glUniform4fv(loc, 1, mesh[index].mat.specular);
-//	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.shininess");
-//	glUniform1f(loc, mesh[index].mat.shininess);
-//}
 
 void sendMaterial(int index) {
 	GLint loc;
@@ -213,12 +194,7 @@ void sendMaterial(int index) {
 	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.shininess");
 	glUniform1f(loc, mesh[index].mat.shininess);
 }
-/*void drawObj(int index) {
-	glUniform1i(texMode_uniformId, 0); 
-	glBindVertexArray(mesh[index].vao);
-	glDrawElements(mesh[index].type, mesh[index].numIndexes, GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
-}*/
+
 void drawObj(int index) {
 	glUniform1i(texMode_uniformId, 0);
 	glBindVertexArray(mesh[index].vao);
@@ -244,9 +220,16 @@ void sendDirectionalLightToggle()
 	isDirLightOn = !isDirLightOn;
 }
 
+void checkHeadlights() {
+	if (spotLightsOn) {
+		glUniform1i(spotOn_uniformId, 1);
+	}
+	else {
+		glUniform1i(spotOn_uniformId, 0);
+	}
+}
+
 void renderScene(void) {
-
-
 	FrameCount++;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	// load identity matrices
@@ -271,6 +254,9 @@ void renderScene(void) {
 		//glUniform4fv(lPos_uniformId, 1, directionalLightPos); //efeito capacete do mineiro, ou seja lighPos foi definido em eye coord 
 	checkMovements();
 	checkHeadlights();
+
+	glUniform1i(directionalLightOn_uniformId, isDirLightOn); // update the switch in the shader (makes no sense)
+
 	float res[4];
 	glUniform1i(numLights_uniformId,(GLint)TOTAL_LIGHTS);
 	for (int i = 0; i < SPOT_LIGHTS; i++) {
@@ -283,7 +269,6 @@ void renderScene(void) {
 	}
   
 	multMatrixPoint(VIEW, directionalLightPos, res);   //lightPos definido em World Coord so is converted to eye space
-	//glUniform4fv(lPos_uniformId, 1, res);
 	glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(SPOT_LIGHTS) + "].l_pos").c_str()), 1, res);
 
 	//sendMaterial(5);
@@ -398,7 +383,6 @@ void processKeys(unsigned char key, int xx, int yy)
 		cam->setFixedOrtho();
 		cam->setCameraType(cam->FIXEDORTHO);
 		break;
-
 	case '2':
 		cam->setFixedPerspective(pratio);
 		cam->setCameraType(cam->FIXEDPERSPECTIVE);
@@ -569,8 +553,8 @@ GLuint setupShaders() {
 	spotOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "spotOn");
 	lPos_uniformId = glGetUniformLocation(shader.getProgramIndex(), "l_pos");
 	directionalLightOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "directionalLightOn");
+	glUniform1i(directionalLightOn_uniformId, 1);
 
-	glUniform1i(directionalLightOn_uniformId, true);
 	tex_loc = glGetUniformLocation(shader.getProgramIndex(), "texmap");
 	texMode_uniformId = glGetUniformLocation(shader.getProgramIndex(), "texMode"); // different modes of texturing
 
