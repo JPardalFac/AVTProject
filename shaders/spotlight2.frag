@@ -109,3 +109,8 @@ void main() {
 	}
 	colorOut = max(total_intensity * mat.diffuse + total_spec, mat.ambient);
 }
+
+
+
+
+

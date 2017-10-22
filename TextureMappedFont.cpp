@@ -100,7 +100,7 @@ bool TextureMappedFont::Init()
 
 
 
-void TextureMappedFont::DrawString(float x, float y, const std::string& str, bool sel) 
+void TextureMappedFont::DrawString(float x, float y, const std::string& str, bool pause, bool sel)
 {
    // static float modelviewMatrix[16];
     //static float projectionMatrix[16];
@@ -114,9 +114,8 @@ void TextureMappedFont::DrawString(float x, float y, const std::string& str, boo
     _shader.Use();
     
     float texCoords[8];
-
+	
     glBindTexture(GL_TEXTURE_2D, _textureID);
- 
 	//GL_CHECK_ERRORS
 
 	matrix_4x4_type translate,I, MV, oldMV, MVP;
@@ -131,8 +130,7 @@ void TextureMappedFont::DrawString(float x, float y, const std::string& str, boo
 
 	MatrMul_4x4_4x4(translate, I, MV);
 	glBindVertexArray(_vaoID);
-   // glTranslatef(x, y, 0.0); //Position our text
-	//std::cout << "str: "<<str << std::endl;
+
     for(std::string::size_type i = 0; i < str.size(); ++i) 
     {
 		MatrMul_4x4_4x4(MV, P, MVP);
@@ -159,6 +157,8 @@ void TextureMappedFont::DrawString(float x, float y, const std::string& str, boo
 
        	glUniformMatrix4fv(glGetUniformLocation(_shader.getProgramIndex(), "MVP"), 1, GL_FALSE, &MVP[0][0]);
 		glUniform1i(glGetUniformLocation(_shader.getProgramIndex(), "selected"), sel);
+		if(pause) glUniform1i(glGetUniformLocation(_shader.getProgramIndex(), "pause"), 1);
+		else glUniform1i(glGetUniformLocation(_shader.getProgramIndex(), "pause"), 0);
 
 		//GL_CHECK_ERRORS
 
