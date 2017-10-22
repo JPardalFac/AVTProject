@@ -17,6 +17,7 @@
 
 #include <string>
 #include <math.h> 
+#include <cassert>
 // include GLEW to access OpenGL 3.3 functions
 #include <GL/glew.h>
 
@@ -33,17 +34,16 @@
 #include "LightSource.h"
 #include "camera.h"
 
+#include "TGA.h"
+#include "TextureMappedFont.h"
+
+#define PI 3.1415289
+#define CAPTION "AVT Light Demo"
 #define SPOT_LIGHTS 	2
 #define DIRECTIONAL 	1
 #define POINT_LIGHTS 	0 //change this value when pointlights are added to the program
 
 #define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
-#include "TGA.h"
-#include "TextureMappedFont.h"
-#include <cassert>
-
-#define PI 3.1415289
-#define CAPTION "AVT Light Demo"
 
 int WindowHandle = 0;
 int WinX = 640, WinY = 480;
@@ -190,6 +190,18 @@ void checkHeadlights() {
 	}
 }
 
+//void sendMaterial(int index) {
+//	GLint loc;
+//	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.ambient");
+//	glUniform4fv(loc, 1, mesh[index].mat.ambient);
+//	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.diffuse");
+//	glUniform4fv(loc, 1, mesh[index].mat.diffuse);
+//	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.specular");
+//	glUniform4fv(loc, 1, mesh[index].mat.specular);
+//	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.shininess");
+//	glUniform1f(loc, mesh[index].mat.shininess);
+//}
+
 void sendMaterial(int index) {
 	GLint loc;
 	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.ambient");
@@ -201,9 +213,14 @@ void sendMaterial(int index) {
 	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.shininess");
 	glUniform1f(loc, mesh[index].mat.shininess);
 }
-
-void drawObj(int index) {
+/*void drawObj(int index) {
 	glUniform1i(texMode_uniformId, 0); 
+	glBindVertexArray(mesh[index].vao);
+	glDrawElements(mesh[index].type, mesh[index].numIndexes, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+}*/
+void drawObj(int index) {
+	glUniform1i(texMode_uniformId, 0);
 	glBindVertexArray(mesh[index].vao);
 	glDrawElements(mesh[index].type, mesh[index].numIndexes, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -280,7 +297,7 @@ void renderScene(void) {
 	//multMatrixPoint(VIEW, point.position, pres);   //lightPos definido em World Coord so is converted to eye space
 	//glUniform1i(lType_uniformId, (GLint)0);
 	//glUniform4fv(lPos_uniformId, 1, pres);
-	}
+	
 
 	//draw car body	
 	sendMaterial(car->objId);
@@ -335,8 +352,6 @@ void renderScene(void) {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glutSwapBuffers();
 }
-
-
 
 // ------------------------------------------------------------
 //
@@ -535,8 +550,8 @@ GLuint setupShaders() {
 	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight2.vert");
 	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight2.frag");
   
-	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight_text.vert");
-	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight_text.frag");
+	/*shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight_text.vert");
+	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight_text.frag");*/
 
 	// set semantics for the shader variables
 	glBindFragDataLocation(shader.getProgramIndex(), 0, "colorOut");

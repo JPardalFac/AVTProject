@@ -21,9 +21,6 @@
     <ClCompile Include="..\basic_geometry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\lightDemo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\vsShaderLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -43,6 +40,8 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\TGA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -53,6 +52,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\mat_matr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lightDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -85,6 +87,8 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\TGA.h">
       <Filter>Header Files</Filter>
     </ClInclude>
