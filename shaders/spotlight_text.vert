@@ -33,7 +33,5 @@ void main () {
 		DataOut[i].spotDir = m_viewModel*lightsIn[i].l_spotDir;
 		DataOut[i].tex_coord = texCoord.st;
 	}
-	
-
 	gl_Position = m_pvm * position;	
 }

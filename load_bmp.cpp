@@ -25,7 +25,7 @@
  *
  *********************************************************/
 
-int num_texture=2; //Counter to keep track of the last loaded texture
+int num_texture=-1; //Counter to keep track of the last loaded texture
 
 
 
@@ -53,7 +53,6 @@ int LoadBMP(char *p_filename)
     RGBTRIPLE rgb;
 
     num_texture++; // The counter of the current texture is increased
-
 	if (p_filename=='\0') return (-1);
 
     if((l_file = fopen(p_filename, "rb"))==NULL) 
@@ -89,7 +88,6 @@ int LoadBMP(char *p_filename)
     fclose(l_file); // Closes the file stream
      
     GLuint error = glGetError();
-
     glBindTexture(GL_TEXTURE_2D, num_texture); // Bind the ID texture specified by the 2nd parameter
 
     // The next commands sets the texture parameters

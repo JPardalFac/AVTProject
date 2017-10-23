@@ -22,8 +22,6 @@ uniform struct Light{
 	int type;
 }lightsOUT[SPOT_LIGHTS];
 
-
-
 in Data {
     vec3 normal;
     vec3 eye;

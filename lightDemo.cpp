@@ -99,8 +99,8 @@ GLuint TextureArray[3];
 // Font variables
 /**TEXTUREMAPPEDFONT*/
 TextureMappedFont* font1;
-TextureMappedFont* font2;
 char l_string[MAX_PATH] = { '\0' };
+int numberFonts = 1;
 
 // Lights variables
 bool spotLightsOn = true, canChangeSpot = true;
@@ -188,8 +188,6 @@ void checkMovements() {
 	}
 }
 
-
-
 void sendMaterial(int index) {
 	GLint loc;
 	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.ambient");
@@ -202,8 +200,8 @@ void sendMaterial(int index) {
 	glUniform1f(loc, mesh[index].mat.shininess);
 }
 
-void drawObj(int index) {
-	glUniform1i(texMode_uniformId, 0);
+void drawObj(int index, int texMode) {
+	glUniform1i(texMode_uniformId, texMode);
 	glBindVertexArray(mesh[index].vao);
 	glDrawElements(mesh[index].type, mesh[index].numIndexes, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -254,6 +252,53 @@ void checkCollisions()
 		}
 	}
 }
+  
+void drawLights() {
+	glUniform1i(directionalLightOn_uniformId, isDirLightOn); // update the switch in the shader (makes no sense)
+
+	float res[4];
+	glUniform1i(numLights_uniformId, (GLint)TOTAL_LIGHTS);
+	for (int i = 0; i < SPOT_LIGHTS; i++) {
+		multMatrixPoint(VIEW, car->headlights[i]->l_position, res);
+		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_pos").c_str()), 1, res);
+		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_spotDir").c_str()), 1, car->headlights[i]->direction);
+		glUniform1f(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_cutoff").c_str()), car->headlights[i]->spot_cutoff);
+		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
+	}
+
+	multMatrixPoint(VIEW, directionalLightPos, res);   //lightPos definido em World Coord so is converted to eye space
+	glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(SPOT_LIGHTS) + "].l_pos").c_str()), 1, res);
+	glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(SPOT_LIGHTS) + "].type").c_str()), 2);
+
+
+}
+
+void drawFonts() {
+	std::string s = std::to_string(numberLifes);
+	char const *pchar = s.c_str();
+
+	std::string s1 = std::to_string(points);
+	char const *pchar1 = s1.c_str();
+
+	sprintf_s(l_string, "Lifes %s", pchar);
+	font1->DrawString(WinX / 2 - 60, WinY - 20, l_string, false);
+	sprintf_s(l_string, "Points %s", pchar1);
+	font1->DrawString(WinX / 2 + 60, WinY - 20, l_string, false);
+
+	sprintf_s(l_string, "Pause %s", "");
+	font1->DrawString(WinX / 2, WinY / 2, l_string, !pause);
+}
+
+void activateTextures() {
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, TextureArray[2]);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, TextureArray[1]);
+
+	glUniform1i(tex_loc, 0+numberFonts);
+	glUniform1i(tex_loc1, 1+numberFonts);
+}
 
 void renderScene(void) {
 	FrameCount++;
@@ -268,16 +313,9 @@ void renderScene(void) {
 	cam->updateLookAt(car->position);
 	// use our shader
 	shader.Use();
-	//std::cout << "main shader: " << shader.vertexFile<< std::endl;
-	//std::cout << "font1 shader: " << font1->_shader.vertexFile << std::endl;
-	//std::cout << "font2 shader: " << font2->_shader.getProgramIndex() << std::endl;
 
 	//textures
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, TextureArray[0]);
-	glUniform1i(tex_loc, 0);
-
-		//glUniform4fv(lPos_uniformId, 1, directionalLightPos); //efeito capacete do mineiro, ou seja lighPos foi definido em eye coord 
+	activateTextures();
 	checkMovements();
 	checkHeadlights();
 
@@ -309,7 +347,8 @@ void renderScene(void) {
 	//multMatrixPoint(VIEW, point.position, pres);   //lightPos definido em World Coord so is converted to eye space
 	//glUniform1i(lType_uniformId, (GLint)0);
 	//glUniform4fv(lPos_uniformId, 1, pres);
-	
+  
+	drawLights();
 
 	//draw car body	
 	sendMaterial(car->objId);
@@ -317,7 +356,7 @@ void renderScene(void) {
 	translate(MODEL,car->position[0],car->position[1],car->position[2]);
 	rotate(MODEL,car->rotation,car->rotationAxis[0],car->rotationAxis[1],car->rotationAxis[2]);
 	sendMatrices();
-	drawObj(car->objId);
+	drawObj(car->objId,0);
 
 	//draw car wheels
 	for (int i = 0; i < 4; i++) {
@@ -328,7 +367,7 @@ void renderScene(void) {
 		rotate(MODEL,w->currentRot,w->movementRotAxis[0], w->movementRotAxis[1], w->movementRotAxis[2]);
 		rotate(MODEL, w->rotation,w->rotationAxis[0],w->rotationAxis[1],w->rotationAxis[2]);
 		sendMatrices();
-		drawObj(w->objId);
+		drawObj(w->objId,0);
 		popMatrix(MODEL);
 
 	}
@@ -351,29 +390,12 @@ void renderScene(void) {
 	translate(MODEL, table->position[0], table->position[1], table->position[2]);
 	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
 	sendMatrices();
-	drawObj(table->objId);
+	drawObj(table->objId,2);
 	shader.UnUse();
 
-	/**TEXTUREMAPPEDFONT*/
-	/*font2->DrawString(100, 100, "car", 1);*/
-	/*HUD*/
-	std::string s = std::to_string(numberLifes);
-	char const *pchar = s.c_str();
+	drawFonts();
 
-	std::string s1 = std::to_string(points);
-	char const *pchar1 = s1.c_str();
 
-	sprintf_s(l_string, "Lifes %s", pchar);
-	font1->DrawString(WinX/2-60, WinY-20, l_string);
-	sprintf_s(l_string, "Points %s", pchar1);
-	font1->DrawString(WinX/2+60, WinY-20, l_string);
-
-	if (pause) {
-		sprintf_s(l_string, "Pause %s", "");
-		font1->DrawString(WinX / 2, WinY / 2, l_string);
-	}
-	//std::cout << "main shader:  " <<shader.getProgramIndex() << std::endl;
-	//std::cout << "font2 shader:  " << font2->_shader.getProgramIndex() << std::endl;
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glutSwapBuffers();
 }
@@ -414,25 +436,31 @@ void processKeys(unsigned char key, int xx, int yy)
 		rot_right = true; 
 		break;
 	case 'h':
-		if (canChangeSpot) {
+		if (canChangeSpot && !pause) {
 			spotLightsOn = !spotLightsOn;
 			canChangeSpot = false;
 		}
 		break; 
 	case '1':
-		cam->setFixedOrtho();
-		cam->setCameraType(cam->FIXEDORTHO);
+		if (!pause) {
+			cam->setFixedOrtho();
+			cam->setCameraType(cam->FIXEDORTHO);
+		}
 		break;
 	case '2':
-		cam->setFixedPerspective(pratio);
-		cam->setCameraType(cam->FIXEDPERSPECTIVE);
+		if (!pause) {
+			cam->setFixedPerspective(pratio);
+			cam->setCameraType(cam->FIXEDPERSPECTIVE);
+		}
 		break;
 	case '3':
-		cam->setMovingPerspective(pratio);
-		cam->setCameraType(cam->MOVINGPERSPECTIVE);
+		if (!pause) {
+			cam->setMovingPerspective(pratio);
+			cam->setCameraType(cam->MOVINGPERSPECTIVE);
+		}
 		break;
 	case 'n':
-		sendDirectionalLightToggle();
+		if(!pause)		sendDirectionalLightToggle();
 		break;
 	case 's':
 		if (canPause) {
@@ -571,12 +599,9 @@ GLuint setupShaders() {
 
 	// Shader for models
 	shader.init();
-	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight2.vert");
-	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight2.frag");
+	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\lights.vert");
+	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\lights.frag");
   
-	/*shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\spotlight_text.vert");
-	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\spotlight_text.frag");*/
-
 	// set semantics for the shader variables
 	glBindFragDataLocation(shader.getProgramIndex(), 0, "colorOut");
 	glBindAttribLocation(shader.getProgramIndex(), VERTEX_COORD_ATTRIB, "position");
@@ -596,6 +621,7 @@ GLuint setupShaders() {
 	glUniform1i(directionalLightOn_uniformId, 1);
 
 	tex_loc = glGetUniformLocation(shader.getProgramIndex(), "texmap");
+	tex_loc1 = glGetUniformLocation(shader.getProgramIndex(), "texmap1");
 	texMode_uniformId = glGetUniformLocation(shader.getProgramIndex(), "texMode"); // different modes of texturing
 
 	printf("InfoLog for Hello World Shader\n%s\n\n", shader.getAllInfoLogs().c_str());
@@ -687,7 +713,7 @@ void createLights() {
 void createTextures() {
 	glGenTextures(3, TextureArray);
 	TGA_Texture(TextureArray, "..//stone.tga", 0);
-	TGA_Texture(TextureArray, "..//checker.tga", 1);
+	TGA_Texture(TextureArray, "..//course1.tga", 1);
 	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
 }
 
@@ -714,11 +740,11 @@ void init()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
 	/**TEXTUREMAPPEDFONT*/
 	font1 = new TextureMappedFont("..//font1.bmp");
-	font2 = new TextureMappedFont("..//font2.bmp");
+	std::cout << font1->_textureID << ", "<<TextureArray[0] << ", " << TextureArray[1] << ", " << TextureArray[2] << std::endl;
 }
 
 // ------------------------------------------------------------

@@ -17,7 +17,8 @@
 #ifndef _LOAD_BMP_H
 #define _LOAD_BMP_H
 
-
+#include <sstream>
+#include <iostream>
  
 /**********************************************************
  *

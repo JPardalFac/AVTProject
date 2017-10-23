@@ -3,6 +3,8 @@
 #include <GL/freeglut.h>
 #include <stdio.h>
 #include "TGA.h"
+#include <sstream>
+#include <iostream>
 
 //extern GLuint TextureArray[2];
 

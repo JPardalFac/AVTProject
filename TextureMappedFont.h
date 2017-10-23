@@ -25,12 +25,12 @@ public:
 	TextureMappedFont(const std::string& fontTexture, float fontSize=16.0f);
 	~TextureMappedFont(void);
 	VSShaderLib _shader;
-
+	GLuint _textureID, _vaoID;
     bool Init();
-    void DrawString(float x, float y, const std::string& string, bool selected=false );
+    void DrawString(float x, float y, const std::string& string, bool pause, bool selected=false  );
 
 private:
-    GLuint _textureID, _vaoID; 
+   
     
     GLuint _texCoordBuffer;
     GLuint _vertexBuffer;
