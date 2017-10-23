@@ -18,6 +18,7 @@
 #include <string>
 #include <math.h> 
 #include <cassert>
+#include <array>
 // include GLEW to access OpenGL 3.3 functions
 #include <GL/glew.h>
 
@@ -33,6 +34,7 @@
 #include "Table.h"
 #include "LightSource.h"
 #include "camera.h"
+#include "Cheerio.h"
 
 #include "TGA.h"
 #include "TextureMappedFont.h"
@@ -42,6 +44,9 @@
 #define SPOT_LIGHTS 	2
 #define DIRECTIONAL 	1
 #define POINT_LIGHTS 	0 //change this value when pointlights are added to the program
+
+#define NUM_CHEERIOS 10
+#define NUM_OBJS 10
 
 #define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
 
@@ -56,7 +61,7 @@ camera* cam = new camera();
 
 VSShaderLib shader;
 
-const int numObjs = 10;
+const int numObjs = NUM_OBJS + NUM_CHEERIOS;
 struct MyMesh mesh[numObjs];
 int objId = 0; //id of the object mesh - to be used as index of mesh: mesh[objID] means the current mesh
 
@@ -64,6 +69,7 @@ int objId = 0; //id of the object mesh - to be used as index of mesh: mesh[objID
 Car* car;
 Table* table;
 LightSource point;
+std::array<Cheerio, NUM_CHEERIOS> trackLimit;
 enum direction { back, forward, left, right };
 bool move_forward = false, move_back = false, rot_left = false, rot_right = false;
 
@@ -124,6 +130,7 @@ float directionalLightPos[4] = { 4.0f, 6.0f, 2.0f, 0.0f };//switched from the de
 
 //test variables
 int angle = 0;
+int numCollisions = 0;
 
 void Timer(int value)
 {
@@ -229,6 +236,25 @@ void checkHeadlights() {
 	}
 }
 
+void checkCollisions() 
+{
+	//check collision with table, if the car goes off the table, the player loses a life and respawns in the initial pos
+	if (!car->checkCollision(*car, *table)){
+		numberLifes--;
+		//checkLifes();
+		car->respawn();
+	}
+	//check if the car is colliding with any cheerio
+	for (int i = 0; i < trackLimit.size(); i++) 
+	{
+		if (car->checkCollision(*car, trackLimit[i])) {
+			car->collided();
+			std::cout << "collided " << numCollisions << "\n";
+			numCollisions++;
+		}
+	}
+}
+
 void renderScene(void) {
 	FrameCount++;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -255,6 +281,8 @@ void renderScene(void) {
 	checkMovements();
 	checkHeadlights();
 
+	checkCollisions();
+
 	glUniform1i(directionalLightOn_uniformId, isDirLightOn); // update the switch in the shader (makes no sense)
 
 	float res[4];
@@ -270,7 +298,6 @@ void renderScene(void) {
   
 	multMatrixPoint(VIEW, directionalLightPos, res);   //lightPos definido em World Coord so is converted to eye space
 	glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(SPOT_LIGHTS) + "].l_pos").c_str()), 1, res);
-
 	//sendMaterial(5);
 	//pushMatrix(MODEL);
 	//translate(MODEL, 1.f, 0.5f, 0);
@@ -305,8 +332,21 @@ void renderScene(void) {
 		popMatrix(MODEL);
 
 	}
-	//draw table
+
 	popMatrix(MODEL);
+	//draw trackLimiter
+	for (int i = 0; i < trackLimit.size(); i++) {
+		pushMatrix(MODEL);
+		sendMaterial(trackLimit[i].objId);
+		translate(MODEL, trackLimit[i].position[0], trackLimit[i].position[1], trackLimit[i].position[2]);
+		rotate(MODEL, trackLimit[i].rotation, trackLimit[i].rotationAxis[0], trackLimit[i].rotationAxis[1], trackLimit[i].rotationAxis[2]);
+		sendMatrices();
+		drawObj(trackLimit[i].objId);
+		popMatrix(MODEL);
+	}
+
+	//draw table
+	//popMatrix(MODEL);
 	sendMaterial(table->objId);
 	translate(MODEL, table->position[0], table->position[1], table->position[2]);
 	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
@@ -565,7 +605,7 @@ GLuint setupShaders() {
 
 void createCar2() {
 	car = new Car();
-	car->init(0, new float[3]{ .5f, .5f, -.5f }, new float[3]{ 0,1,0 }, 0);
+	car->init(0, new float[3]{ .5f, 0.5f, -.5f }, new float[3]{ 0,1,0 }, 0);
 	//car.setColor(mesh);
 	objId = car->objId;
 	memcpy(mesh[car->objId].mat.ambient, car->amb, 4 * sizeof(float));
@@ -617,6 +657,27 @@ void createTable() {
 	createQuad(table->x,table->y);
 }
 
+void createTrack() 
+{
+	float rot = 0;
+	float rotAxis[3] = { 1.0f,0.0f,0.0f };
+	float pos[3] = { -2, .5, 0 };
+
+	for (int i = 0; i < trackLimit.size(); i++) 
+	{
+		pos[0] += 0.6; //update the x coord of each new cheerio
+		objId++;
+		trackLimit[i] = Cheerio(objId, pos, rotAxis, rot);
+		//int memPos = NUM_OBJS + i;
+		memcpy(mesh[trackLimit[i].objId].mat.ambient, trackLimit[i].amb, 4 * sizeof(float));
+		memcpy(mesh[trackLimit[i].objId].mat.diffuse, trackLimit[i].diff, 4 * sizeof(float));
+		memcpy(mesh[trackLimit[i].objId].mat.specular, trackLimit[i].spec, 4 * sizeof(float));
+		memcpy(mesh[trackLimit[i].objId].mat.emissive, trackLimit[i].emissive, 4 * sizeof(float));
+		mesh[trackLimit[i].objId].mat.shininess = trackLimit[i].shininess;
+		mesh[trackLimit[i].objId].mat.texCount = trackLimit[i].texcount;
+		createTorus(trackLimit[i].initValues[0], trackLimit[i].initValues[1], trackLimit[i].initValues[2], trackLimit[i].initValues[3]);
+	}
+}
 
 void createLights() {
 	point = LightSource();
@@ -645,6 +706,7 @@ void init()
 	createTextures();
 	createCar2();
 	createTable();
+	createTrack();
 	createLights(); 
 
 
