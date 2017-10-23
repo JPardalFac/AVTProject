@@ -17,6 +17,6 @@ public:
 	void setPoint(float pos[4]);
 	void setAmb(float dir[4]);
 
-	void rotate(float rot);
+	void rotate(float rot, float car_pos[4], float des);
 	void move(int direction, float dx, float dy);
 };

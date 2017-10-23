@@ -2,7 +2,7 @@
 
 #define SPOT_LIGHTS 	2
 #define DIRECTIONAL 	1
-#define POINT_LIGHTS 	0 //change this value when pointlights are added to the program
+#define POINT_LIGHTS 	3 //change this value when pointlights are added to the program
 
 #define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
 
@@ -11,6 +11,8 @@ uniform sampler2D texmap1;
 uniform int texMode;
 
 out vec4 colorOut;
+
+uniform int numLights1;
  
 struct Materials {
     vec4 diffuse;
@@ -62,12 +64,12 @@ void calculatePointLights(out vec4 spec, out float intensity, int ind){
 	vec3 l = normalize(DataIn[ind].lightDir);
 	vec3 e = normalize(DataIn[ind].eye);
 
-	intensity = max(dot(n,l), 0.0);
+	intensity += max(dot(n,l), 0.0);
 
 	if (intensity > 0.0) {
 		vec3 h = normalize(l + e);
 		float intSpec = max(dot(h,n), 0.0);
-		spec = mat.specular * pow(intSpec, mat.shininess);
+		spec += mat.specular * pow(intSpec, mat.shininess);
 	}
 }
 

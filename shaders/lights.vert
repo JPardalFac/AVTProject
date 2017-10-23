@@ -1,13 +1,15 @@
 #version 330
 #define SPOT_LIGHTS 	2
 #define DIRECTIONAL 	1
-#define POINT_LIGHTS 	0 //change this value when pointlights are added to the program
+#define POINT_LIGHTS 	3 //change this value when pointlights are added to the program
 
 #define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
 
 uniform mat4 m_pvm;
 uniform mat4 m_viewModel;
 uniform mat3 m_normal;
+
+uniform int numLights;
 
 uniform struct light{
 	vec4 l_pos;
