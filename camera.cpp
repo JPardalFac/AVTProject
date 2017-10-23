@@ -38,9 +38,10 @@ void camera::updateLookAt(float carPos[])
 			lookAt(eye[0], eye[1], eye[2], at[0], at[1], at[2], up[0], up[1], up[2]);
 		break;
 		case MOVINGPERSPECTIVE:
-			lookAt( carPos[0] - 5, carPos[1] + 3, carPos[2],
-					carPos[0] + 6, carPos[1], carPos[2],
+			lookAt( carPos[0] - 5 + camRot[0], carPos[1] + 3 + camRot[1], carPos[2] + camRot[2],
+					carPos[0], carPos[1], carPos[2],
 					0,1,0);
+			// carPos[0] + 6
 		break;
 	}
 }
@@ -64,6 +65,9 @@ void camera::updateProjection(float * ratio)
 
 void camera::sendCamCoords(float x, float y, float z)
 {
+	camRot[0] = x;
+	camRot[1] = std::max(y, 0.1f);
+	camRot[2] = z;
 
 }
 

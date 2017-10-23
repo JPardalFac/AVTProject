@@ -12,6 +12,7 @@ public:
 	float direction[4];
 	float spot_cutoff;
 	float speed = 0.15f;
+	float initialPos[4];
 
 	void setSpot(float pos[4], float dir[4],float cutoff);
 	void setPoint(float pos[4]);

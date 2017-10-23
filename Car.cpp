@@ -20,6 +20,7 @@ void Car::init(int id,float pos[3], float rotAxis[3], float rot)
 	//store initPos to use when car respawns
 	setInitialPos(pos);
 }
+
 void Car::init(int id, float pos[3], float rotAxis[3], float rot, float size[3])
 {
 	Car::init(id,  pos,  rotAxis,  rot);
@@ -29,18 +30,10 @@ void Car::init(int id, float pos[3], float rotAxis[3], float rot, float size[3])
 	//store initPos to use when car respawns
 	setInitialPos(pos);
 }
-//
-//void Car::setColor(MyMesh mesh[10]) {
-//	
-//	Object::setColor(mesh,amb,diff,spec,emissive,shininess,texcount);
-//	createCube();
-//	//for (int i = 0; i < 4; i++) {
-//	//	wheels[i]->setColor(mesh);
-//	//}
-//}
 
 void Car::move(int  dir) {
 	float dx, dy;
+	speed = .3f;
 	switch (dir) {
 	case back:
 		dy = (float)(cos(rotation * PI / 180.0) * speed);
@@ -63,18 +56,16 @@ void Car::move(int  dir) {
 	}
 }
 
-
-
 void Car::rotate(int dir) {
 	switch (dir) {
 	case left:
-		rotation += 1;
+		rotation += 2;
 		if (rotation > 360) {
 			rotation = 0;
 		}
 		break;
 	case right:
-		rotation -= 1;
+		rotation -= 2;
 		if (rotation < 0) {
 			rotation = 360;
 		}
@@ -87,13 +78,13 @@ void Car::rotate(int dir) {
 
 void Car::collided()
 {
-	if(rotation <= 180){
+	//if(rotation <= 180){
 	if (collisionPenetration3[0] > 0)
 		move(forward);
 	else
 		move(back);
-	}
-	else
+	//}
+	/*else
 		move(forward);
 	/*position[0] -= collisionPenetration3[0];
 	position[2] -= collisionPenetration3[2];*/
@@ -116,12 +107,9 @@ void Car::moveToPos(float posToMoveTo[3])
 	position[2] = posToMoveTo[2];
 	
 	for (int i = 0; i < 2; i++) {
-		//headlights[i]->move(dir, headlights[i]->direction[0], headlights[i]->direction[1]);
-		headlights[i]->l_position[0] = posToMoveTo[0];
-		headlights[i]->l_position[2] = posToMoveTo[2];
+		headlights[i]->l_position[0] = headlights[i]->initialPos[0];
+		headlights[i]->l_position[2] = headlights[i]->initialPos[2];
 	}
-
-
 }
 
 void Car::respawn()
