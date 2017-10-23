@@ -14,5 +14,5 @@ public:
 	float x = 100;
 	float y = 100;
 
-
+	Table();
 };

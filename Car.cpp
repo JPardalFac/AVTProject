@@ -17,6 +17,17 @@ void Car::init(int id,float pos[3], float rotAxis[3], float rot)
 		headlights[i] = new LightSource();
 		headlights[i]->setSpot(pos,dir, 120);
 	}
+	//store initPos to use when car respawns
+	setInitialPos(pos);
+}
+void Car::init(int id, float pos[3], float rotAxis[3], float rot, float size[3])
+{
+	Car::init(id,  pos,  rotAxis,  rot);
+	for (int i = 0; i < 3; i++)
+		size3[i] = size[i];
+
+	//store initPos to use when car respawns
+	setInitialPos(pos);
 }
 //
 //void Car::setColor(MyMesh mesh[10]) {
@@ -27,8 +38,6 @@ void Car::init(int id,float pos[3], float rotAxis[3], float rot)
 //	//	wheels[i]->setColor(mesh);
 //	//}
 //}
-
-
 
 void Car::move(int  dir) {
 	float dx, dy;
@@ -54,6 +63,8 @@ void Car::move(int  dir) {
 	}
 }
 
+
+
 void Car::rotate(int dir) {
 	switch (dir) {
 	case left:
@@ -72,4 +83,48 @@ void Car::rotate(int dir) {
 	for (int i = 0; i < 2; i++) {
 		headlights[i]->rotate(rotation);
 	}
+}
+
+void Car::collided()
+{
+	if(rotation <= 180){
+	if (collisionPenetration3[0] > 0)
+		move(forward);
+	else
+		move(back);
+	}
+	else
+		move(forward);
+	/*position[0] -= collisionPenetration3[0];
+	position[2] -= collisionPenetration3[2];*/
+	collisionPenetration3[0] = 0;
+	collisionPenetration3[2] = 0;
+}
+
+//store initPos to use when car respawns
+void Car::setInitialPos(float posToSet[3])
+{
+	for (int i = 0; i < 3; i++)
+		initialPos[i] = posToSet[i];
+}
+
+//used when we need to move the car (with headlights and wheels) to a specific location, for instance, when the player dies
+void Car::moveToPos(float posToMoveTo[3])
+{
+	//move the car to the new position
+	position[0] = posToMoveTo[0];
+	position[2] = posToMoveTo[2];
+	
+	for (int i = 0; i < 2; i++) {
+		//headlights[i]->move(dir, headlights[i]->direction[0], headlights[i]->direction[1]);
+		headlights[i]->l_position[0] = posToMoveTo[0];
+		headlights[i]->l_position[2] = posToMoveTo[2];
+	}
+
+
+}
+
+void Car::respawn()
+{
+	moveToPos(initialPos);
 }
