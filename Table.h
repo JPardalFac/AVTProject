@@ -11,8 +11,8 @@ public:
 	float shininess = 100;
 	int texcount = 0;
 
-	float x = 100;
-	float y = 100;
+	float x = 33;
+	float y = 33;
 
 	Table();
 };

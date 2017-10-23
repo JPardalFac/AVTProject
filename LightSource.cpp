@@ -12,6 +12,9 @@ void LightSource::setSpot(float pos[4], float dir[4], float cutoff)
 	direction[2] = dir[2];
 	direction[3] = dir[3];
 
+	for (int i = 0; i < 4; i++)
+		initialPos[i] = pos[i];
+
 	spot_cutoff = cutoff;
 
 	type = "spot";

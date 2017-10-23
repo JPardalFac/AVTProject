@@ -20,6 +20,7 @@ void Car::init(int id,float pos[3], float rotAxis[3], float rot)
 	//store initPos to use when car respawns
 	setInitialPos(pos);
 }
+
 void Car::init(int id, float pos[3], float rotAxis[3], float rot, float size[3])
 {
 	Car::init(id,  pos,  rotAxis,  rot);
@@ -29,15 +30,6 @@ void Car::init(int id, float pos[3], float rotAxis[3], float rot, float size[3])
 	//store initPos to use when car respawns
 	setInitialPos(pos);
 }
-//
-//void Car::setColor(MyMesh mesh[10]) {
-//	
-//	Object::setColor(mesh,amb,diff,spec,emissive,shininess,texcount);
-//	createCube();
-//	//for (int i = 0; i < 4; i++) {
-//	//	wheels[i]->setColor(mesh);
-//	//}
-//}
 
 void Car::move(int  dir) {
 	float dx, dy;
@@ -62,8 +54,6 @@ void Car::move(int  dir) {
 		headlights[i]->move(dir,dx,dy);
 	}
 }
-
-
 
 void Car::rotate(int dir) {
 	switch (dir) {
@@ -116,12 +106,9 @@ void Car::moveToPos(float posToMoveTo[3])
 	position[2] = posToMoveTo[2];
 	
 	for (int i = 0; i < 2; i++) {
-		//headlights[i]->move(dir, headlights[i]->direction[0], headlights[i]->direction[1]);
-		headlights[i]->l_position[0] = posToMoveTo[0];
-		headlights[i]->l_position[2] = posToMoveTo[2];
+		headlights[i]->l_position[0] = headlights[i]->initialPos[0];
+		headlights[i]->l_position[2] = headlights[i]->initialPos[2];
 	}
-
-
 }
 
 void Car::respawn()

@@ -380,14 +380,14 @@ void renderScene(void) {
 		translate(MODEL, trackLimit[i].position[0], trackLimit[i].position[1], trackLimit[i].position[2]);
 		rotate(MODEL, trackLimit[i].rotation, trackLimit[i].rotationAxis[0], trackLimit[i].rotationAxis[1], trackLimit[i].rotationAxis[2]);
 		sendMatrices();
-		drawObj(trackLimit[i].objId);
+		drawObj(trackLimit[i].objId, 0);
 		popMatrix(MODEL);
 	}
 
 	//draw table
 	//popMatrix(MODEL);
 	sendMaterial(table->objId);
-	translate(MODEL, table->position[0], table->position[1], table->position[2]);
+	//translate(MODEL, table->position[0], table->position[1], table->position[2]);
 	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
 	sendMatrices();
 	drawObj(table->objId,2);
@@ -631,7 +631,7 @@ GLuint setupShaders() {
 
 void createCar2() {
 	car = new Car();
-	car->init(0, new float[3]{ .5f, 0.5f, -.5f }, new float[3]{ 0,1,0 }, 0);
+	car->init(0, new float[3]{ .5f, 0.7f, -.5f }, new float[3]{ 0,1,0 }, 0);
 	//car.setColor(mesh);
 	objId = car->objId;
 	memcpy(mesh[car->objId].mat.ambient, car->amb, 4 * sizeof(float));
@@ -670,7 +670,7 @@ void createCar2() {
 void createTable() {
 	float rot = -90;
 	float rotAxis[3] = { 1.0f,0.0f,0.0f };
-	float pos[3] = {2,-0.1f,2};
+	float pos[3] = {0,-0.1f,0};
 	objId++;
 	table = new Table();
 	table->init(objId,pos,rotAxis,rot);
@@ -740,7 +740,7 @@ void init()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 	/**TEXTUREMAPPEDFONT*/
 	font1 = new TextureMappedFont("..//font1.bmp");

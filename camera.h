@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <algorithm>
 #include "AVTmathLib.h"
 
 class camera
@@ -11,6 +12,8 @@ public:
 	float up[3] = { 0, 0, -1 }; 
 	float fixedPerspectiveFov = 120;
 	float movingPerspectiveFov = 60;
+
+	float camRot[3];
 
 	float orthoBox[6] = {-20, 20, -20, 20, -5, 20}; //l,r,b,t,n,f
 	enum CameraType {FIXEDORTHO, FIXEDPERSPECTIVE, MOVINGPERSPECTIVE};
