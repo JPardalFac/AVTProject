@@ -43,7 +43,7 @@
 #define CAPTION "AVT Light Demo"
 #define SPOT_LIGHTS 	2
 #define DIRECTIONAL 	1
-#define POINT_LIGHTS 	0 //change this value when pointlights are added to the program
+#define POINT_LIGHTS 	3 //change this value when pointlights are added to the program
 
 #define NUM_CHEERIOS 100
 #define NUM_OBJS 10
@@ -68,7 +68,7 @@ int objId = 0; //id of the object mesh - to be used as index of mesh: mesh[objID
 
 Car* car;
 Table* table;
-LightSource point;
+LightSource* candles[POINT_LIGHTS];
 std::array<Cheerio, NUM_CHEERIOS> trackLimit;
 enum direction { back, forward, left, right };
 bool move_forward = false, move_back = false, rot_left = false, rot_right = false;
@@ -88,7 +88,7 @@ GLint normal_uniformId;
 GLint lPos_uniformId;
 GLint lSpotDir_uniformId;
 GLint lSpotCutOff_uniformId;
-GLint numLights_uniformId;
+GLint numLights_uniformId, numLights1_uniformId;
 GLint spotOn_uniformId;
 GLint directionalLightOn_uniformId;
 
@@ -106,7 +106,7 @@ int numberFonts = 1;
 bool spotLightsOn = true, canChangeSpot = true;
 
 // Interface variables
-bool pause = false, canPause = true;
+bool pause = false, canPause = true, gameOver = false;
 int numberLifes = 5, points = 0;
 
 // Cameras Position
@@ -134,7 +134,9 @@ int numCollisions = 0;
 
 void Timer(int value)
 {
-	angle += 1;
+	//if(numberLifes > 0)
+	//	numberLifes -= 1;
+	angle++;
 	glutPostRedisplay();
 	glutTimerFunc(100, Timer, 0);
 }
@@ -180,7 +182,7 @@ void changeSize(int w, int h) {
 //
 
 void checkMovements() {
-	if (!pause) {
+	if (!pause && !gameOver) {
 		if (move_forward) car->move(forward);
 		else if (move_back) car->move(back);
 		if (rot_left) car->rotate(left);
@@ -233,21 +235,19 @@ void checkHeadlights() {
 		glUniform1i(spotOn_uniformId, 0);
 	}
 }
-
+void checkLifes();
 void checkCollisions() 
 {
 	//check collision with table, if the car goes off the table, the player loses a life and respawns in the initial pos
-	if (!car->checkCollision(*car, *table)){
+	if (!car->checkCollision(*car, *table) && numberLifes > 0){
 		numberLifes--;
-		//checkLifes();
-		car->respawn();
+		checkLifes();
 	}
 	//check if the car is colliding with any cheerio
 	for (int i = 0; i < trackLimit.size(); i++) 
 	{
 		if (car->checkCollision(*car, trackLimit[i])) {
 			car->collided();
-			std::cout << "collided " << numCollisions << "\n";
 			numCollisions++;
 		}
 	}
@@ -258,18 +258,28 @@ void drawLights() {
 
 	float res[4];
 	glUniform1i(numLights_uniformId, (GLint)TOTAL_LIGHTS);
+	glUniform1i(numLights1_uniformId, (GLint)TOTAL_LIGHTS);
 	for (int i = 0; i < SPOT_LIGHTS; i++) {
 		multMatrixPoint(VIEW, car->headlights[i]->l_position, res);
 		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_pos").c_str()), 1, res);
 		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_spotDir").c_str()), 1, car->headlights[i]->direction);
 		glUniform1f(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_cutoff").c_str()), car->headlights[i]->spot_cutoff);
 		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
+		//std::cout << i << std::endl;
 	}
 
 	multMatrixPoint(VIEW, directionalLightPos, res);   //lightPos definido em World Coord so is converted to eye space
 	glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(SPOT_LIGHTS) + "].l_pos").c_str()), 1, res);
 	glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(SPOT_LIGHTS) + "].type").c_str()), 2);
-
+	//std::cout << SPOT_LIGHTS << std::endl;
+	for (int j = 0; j < POINT_LIGHTS; j++) {
+		//if (j == 2) { candles[j]->l_position[0] += angle; }
+		multMatrixPoint(VIEW, candles[j]->l_position, res);   //lightPos definido em World Coord so is converted to eye space
+		//std::cout << candles[j]->l_position[0] << ", " << candles[j]->l_position[1] << ", " << candles[j]->l_position[2] << std::endl;
+		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(j+SPOT_LIGHTS+DIRECTIONAL) + "].l_pos").c_str()), 1, res);
+		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(j+SPOT_LIGHTS+DIRECTIONAL) + "].type").c_str()), 0);
+		//std::cout << j + SPOT_LIGHTS + DIRECTIONAL << std::endl;
+	}
 
 }
 
@@ -285,8 +295,14 @@ void drawFonts() {
 	sprintf_s(l_string, "Points %s", pchar1);
 	font1->DrawString(WinX / 2 + 60, WinY - 20, l_string, false);
 
-	sprintf_s(l_string, "Pause %s", "");
-	font1->DrawString(WinX / 2, WinY / 2, l_string, !pause);
+	if (!gameOver) {
+		sprintf_s(l_string, "Pause %s", "");
+		font1->DrawString(WinX / 2, WinY / 2, l_string, !pause);
+	}
+	else if (gameOver) {
+		sprintf_s(l_string, "Game Over ", "");
+		font1->DrawString(WinX / 2, WinY / 2, l_string, false);
+	}
 }
 
 void activateTextures() {
@@ -298,6 +314,27 @@ void activateTextures() {
 
 	glUniform1i(tex_loc, 0+numberFonts);
 	glUniform1i(tex_loc1, 1+numberFonts);
+}
+
+void checkLifes() {
+	if (numberLifes <= 0) {
+		numberLifes = 0;
+		gameOver = true;
+	}
+	else {
+		car->respawn();
+	}
+}
+
+void restart() {
+	numberLifes = 5;
+	points = 0;
+	pause = false;
+	canPause = true;
+	spotLightsOn = true;
+	canChangeSpot = true;
+	isDirLightOn = true;
+	car->respawn();
 }
 
 void renderScene(void) {
@@ -320,34 +357,6 @@ void renderScene(void) {
 	checkHeadlights();
 
 	checkCollisions();
-
-	glUniform1i(directionalLightOn_uniformId, isDirLightOn); // update the switch in the shader (makes no sense)
-
-	float res[4];
-	glUniform1i(numLights_uniformId,(GLint)TOTAL_LIGHTS);
-	for (int i = 0; i < SPOT_LIGHTS; i++) {
-		multMatrixPoint(VIEW, car->headlights[i]->l_position, res);		
-		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_pos").c_str()), 1, res);
-		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_spotDir").c_str()), 1, car->headlights[i]->direction);
-		glUniform1f(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_cutoff").c_str()), car->headlights[i]->spot_cutoff);
-		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
-		//std::cout << car->headlights[i]->direction[0] << ", " << car->headlights[i]->direction[1] << ", " << car->headlights[i]->direction[2] << std::endl;
-	}
-  
-	multMatrixPoint(VIEW, directionalLightPos, res);   //lightPos definido em World Coord so is converted to eye space
-	glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(SPOT_LIGHTS) + "].l_pos").c_str()), 1, res);
-	//sendMaterial(5);
-	//pushMatrix(MODEL);
-	//translate(MODEL, 1.f, 0.5f, 0);
-	//sendMatrices();
-	//drawObj(5);
-	//popMatrix(MODEL);
-
-	//float pres[4];
-	//multMatrixPoint(VIEW, point.position, pres);   //lightPos definido em World Coord so is converted to eye space
-	//glUniform1i(lType_uniformId, (GLint)0);
-	//glUniform4fv(lPos_uniformId, 1, pres);
-  
 	drawLights();
 
 	//draw car body	
@@ -394,7 +403,6 @@ void renderScene(void) {
 	shader.UnUse();
 
 	drawFonts();
-
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glutSwapBuffers();
@@ -466,6 +474,12 @@ void processKeys(unsigned char key, int xx, int yy)
 		if (canPause) {
 			pause = !pause;
 			canPause = false;
+		}
+		break;
+	case 'r':
+		if (gameOver) {
+			gameOver = !gameOver;
+			restart();
 		}
 		break;
 	}
@@ -615,6 +629,7 @@ GLuint setupShaders() {
 	normal_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_normal");
 	//lights
 	numLights_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights");
+	numLights1_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights1");
 	spotOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "spotOn");
 	lPos_uniformId = glGetUniformLocation(shader.getProgramIndex(), "l_pos");
 	directionalLightOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "directionalLightOn");
@@ -753,8 +768,13 @@ void createTrack()
 }
 
 void createLights() {
-	point = LightSource();
-	point.setPoint(new float[4]{ 4.0f, 6.0f, 2.0f, 1.0f });
+
+	for (int i = 0; i < POINT_LIGHTS; i++) {
+		candles[i] = new LightSource();
+		float pos[4] = { rand()%50, .5f, rand()%50, 1.0f };
+		candles[i]->setPoint(pos);
+	}
+
 }
 
 void createTextures() {
@@ -791,7 +811,6 @@ void init()
 
 	/**TEXTUREMAPPEDFONT*/
 	font1 = new TextureMappedFont("..//font1.bmp");
-	std::cout << font1->_textureID << ", "<<TextureArray[0] << ", " << TextureArray[1] << ", " << TextureArray[2] << std::endl;
 }
 
 // ------------------------------------------------------------

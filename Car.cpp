@@ -72,7 +72,7 @@ void Car::rotate(int dir) {
 		break;
 	}
 	for (int i = 0; i < 2; i++) {
-		headlights[i]->rotate(rotation);
+		headlights[i]->rotate(rotation,position,i);
 	}
 }
 
