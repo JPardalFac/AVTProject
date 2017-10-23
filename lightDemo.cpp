@@ -100,7 +100,7 @@ int numberFonts = 1;
 bool spotLightsOn = true, canChangeSpot = true;
 
 // Interface variables
-bool pause = false, canPause = true;
+bool pause = false, canPause = true, gameOver = false;
 int numberLifes = 5, points = 0;
 
 // Cameras Position
@@ -127,7 +127,8 @@ int angle = 0;
 
 void Timer(int value)
 {
-	angle += 1;
+	if(numberLifes > 0)
+		numberLifes -= 1;
 	glutPostRedisplay();
 	glutTimerFunc(100, Timer, 0);
 }
@@ -259,8 +260,10 @@ void drawFonts() {
 	sprintf_s(l_string, "Points %s", pchar1);
 	font1->DrawString(WinX / 2 + 60, WinY - 20, l_string, false);
 
-	sprintf_s(l_string, "Pause %s", "");
-	font1->DrawString(WinX / 2, WinY / 2, l_string, !pause);
+	if (!gameOver) {
+		sprintf_s(l_string, "Pause %s", "");
+		font1->DrawString(WinX / 2, WinY / 2, l_string, !pause);
+	}	
 }
 
 void activateTextures() {
@@ -272,6 +275,24 @@ void activateTextures() {
 
 	glUniform1i(tex_loc, 0+numberFonts);
 	glUniform1i(tex_loc1, 1+numberFonts);
+}
+
+void checkLifes() {
+	if (numberLifes <= 0) {
+		sprintf_s(l_string, "Game Over ", "");
+		font1->DrawString(WinX / 2, WinY / 2, l_string, false);
+		gameOver = true;
+	}
+}
+
+void restart() {
+	numberLifes = 5;
+	points = 0;
+	pause = false;
+	canPause = true;
+	spotLightsOn = true;
+	canChangeSpot = true;
+	isDirLightOn = true;
 }
 
 void renderScene(void) {
@@ -325,6 +346,7 @@ void renderScene(void) {
 	shader.UnUse();
 
 	drawFonts();
+	checkLifes();
 
 
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -397,6 +419,12 @@ void processKeys(unsigned char key, int xx, int yy)
 		if (canPause) {
 			pause = !pause;
 			canPause = false;
+		}
+		break;
+	case 'r':
+		if (gameOver) {
+			gameOver = !gameOver;
+			restart();
 		}
 		break;
 	}
