@@ -45,7 +45,7 @@
 #define DIRECTIONAL 	1
 #define POINT_LIGHTS 	0 //change this value when pointlights are added to the program
 
-#define NUM_CHEERIOS 10
+#define NUM_CHEERIOS 100
 #define NUM_OBJS 10
 
 #define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
@@ -685,16 +685,63 @@ void createTable() {
 
 void createTrack() 
 {
+	float spaceBetCheerios = 1.7;
+	float initialDeviationX = table->x / 3;
+
 	float rot = 0;
 	float rotAxis[3] = { 1.0f,0.0f,0.0f };
-	float pos[3] = { -2, .5, 0 };
+	float pos[3] = { - initialDeviationX, 0, 0 };
 
-	for (int i = 0; i < trackLimit.size(); i++) 
+
+	for (int i = 0; i < trackLimit.size(); i++)
 	{
-		pos[0] += 0.6; //update the x coord of each new cheerio
-		objId++;
+		if (i < 10){	// z++
+			pos[0] += spaceBetCheerios;
+			pos[2] += spaceBetCheerios;
+		}else if (i >= 10 && i < 20)
+		{
+			pos[0] += spaceBetCheerios;
+			pos[2] -= spaceBetCheerios;
+		}
+		else if (i >= 20 && i < 30)
+		{
+			pos[0] -= spaceBetCheerios;
+			pos[2] -= spaceBetCheerios;
+		}
+		else if (i >= 30 && i < 40)
+		{
+			pos[0] -= spaceBetCheerios; //update the x coord of each new cheerio
+			pos[2] += spaceBetCheerios;
+		}
+		if (i == 40) {
+			pos[0] -= 10;
+			pos[2] += spaceBetCheerios;
+		}
+		else if (i > 40 && i < 55) 
+		{
+			pos[0] += spaceBetCheerios;
+			pos[2] += spaceBetCheerios;
+		}if (i == 55)
+			pos[0] += 5;
+		else if(i> 55 && i <70)
+		{
+			pos[0] += spaceBetCheerios;
+			pos[2] -= spaceBetCheerios;
+		}
+		if (i == 70)
+			pos[2] -= 5;
+		else if (i > 70 && i <85)
+		{
+			pos[0] -= spaceBetCheerios;
+			pos[2] -= spaceBetCheerios;
+		}
+		else if (i >= 85 && i < 100)
+		{
+			pos[0] -= spaceBetCheerios; //update the x coord of each new cheerio
+			pos[2] += spaceBetCheerios;
+		}
+			objId++;
 		trackLimit[i] = Cheerio(objId, pos, rotAxis, rot);
-		//int memPos = NUM_OBJS + i;
 		memcpy(mesh[trackLimit[i].objId].mat.ambient, trackLimit[i].amb, 4 * sizeof(float));
 		memcpy(mesh[trackLimit[i].objId].mat.diffuse, trackLimit[i].diff, 4 * sizeof(float));
 		memcpy(mesh[trackLimit[i].objId].mat.specular, trackLimit[i].spec, 4 * sizeof(float));

@@ -33,6 +33,7 @@ void Car::init(int id, float pos[3], float rotAxis[3], float rot, float size[3])
 
 void Car::move(int  dir) {
 	float dx, dy;
+	speed = .3f;
 	switch (dir) {
 	case back:
 		dy = (float)(cos(rotation * PI / 180.0) * speed);
@@ -58,13 +59,13 @@ void Car::move(int  dir) {
 void Car::rotate(int dir) {
 	switch (dir) {
 	case left:
-		rotation += 1;
+		rotation += 2;
 		if (rotation > 360) {
 			rotation = 0;
 		}
 		break;
 	case right:
-		rotation -= 1;
+		rotation -= 2;
 		if (rotation < 0) {
 			rotation = 360;
 		}
@@ -77,13 +78,13 @@ void Car::rotate(int dir) {
 
 void Car::collided()
 {
-	if(rotation <= 180){
+	//if(rotation <= 180){
 	if (collisionPenetration3[0] > 0)
 		move(forward);
 	else
 		move(back);
-	}
-	else
+	//}
+	/*else
 		move(forward);
 	/*position[0] -= collisionPenetration3[0];
 	position[2] -= collisionPenetration3[2];*/
