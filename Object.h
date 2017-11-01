@@ -12,6 +12,7 @@ public:
 	float position[3];
 	float rotationAxis[3];
 	float rotation;
+	float velocity[3];
 	
 	//collision variables
 	float size3[3] = {1, 1, 1}; //used for collision detection. This assumes CUBE COLLIDER

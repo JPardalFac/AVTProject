@@ -16,6 +16,10 @@ void Object::init(int id, float pos[3], float rotAxis[3], float rot) {
 
 	//set rotation value
 	rotation = rot;
+
+	//set velocity
+	for (int i = 0; i < 3; i++)
+		velocity[i] = 0;
 }
 
 void Object::init(int id, float pos[3], float rotAxis[3], float rot, float size[3])
@@ -23,6 +27,10 @@ void Object::init(int id, float pos[3], float rotAxis[3], float rot, float size[
 	init(id, pos, rotationAxis, rot);
 	for (int i = 0; i < 3; i++)
 		size3[i] = size[i];
+
+	//set velocity
+	for (int i = 0; i < 3; i++)
+		velocity[i] = 0;
 }
 
 void Object::move(int dir)
@@ -49,6 +57,8 @@ bool Object::checkCollision(Object & one, Object & two)
 
 	bool collisionX = topLeftOne[0] + one.size3[0] >= topLeftTwo[0] &&
 					  topLeftTwo[0] + two.size3[0] >= topLeftOne[0];
+	if (!collisionX)
+		return false; //if there is no collision in x, there is no need to check for Y
 
 	bool collisionY = topLeftOne[2] + one.size3[2] >= topLeftTwo[2] &&
 					  topLeftTwo[2] + two.size3[2] >= topLeftOne[2];

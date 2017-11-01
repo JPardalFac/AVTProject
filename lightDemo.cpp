@@ -45,7 +45,7 @@
 #define DIRECTIONAL 	1
 #define POINT_LIGHTS 	3 //change this value when pointlights are added to the program
 
-#define NUM_CHEERIOS 100
+#define NUM_CHEERIOS 120
 #define NUM_OBJS 10
 
 #define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
@@ -134,8 +134,6 @@ int numCollisions = 0;
 
 void Timer(int value)
 {
-	//if(numberLifes > 0)
-	//	numberLifes -= 1;
 	angle++;
 	glutPostRedisplay();
 	glutTimerFunc(100, Timer, 0);
@@ -236,6 +234,7 @@ void checkHeadlights() {
 	}
 }
 void checkLifes();
+
 void checkCollisions() 
 {
 	//check collision with table, if the car goes off the table, the player loses a life and respawns in the initial pos
@@ -243,11 +242,13 @@ void checkCollisions()
 		numberLifes--;
 		checkLifes();
 	}
+	//car->resetCollisionFlag();
 	//check if the car is colliding with any cheerio
 	for (int i = 0; i < trackLimit.size(); i++) 
 	{
 		if (car->checkCollision(*car, trackLimit[i])) {
-			car->collided();
+			car->collided(trackLimit[i]);
+			trackLimit[i].collided(car->position);
 			numCollisions++;
 		}
 	}
