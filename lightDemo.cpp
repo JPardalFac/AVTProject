@@ -35,9 +35,12 @@
 #include "LightSource.h"
 #include "camera.h"
 #include "Cheerio.h"
+#include "ButterPacket.h"
+#include "Orange.h"
 
 #include "TGA.h"
 #include "TextureMappedFont.h"
+#include "lightDemo.h"
 
 #define PI 3.1415289
 #define CAPTION "AVT Light Demo"
@@ -47,6 +50,8 @@
 
 #define NUM_CHEERIOS 100
 #define NUM_OBJS 10
+#define NUM_PACKETS 5
+#define NUM_ORANGES 6
 
 #define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
 
@@ -61,7 +66,7 @@ camera* cam = new camera();
 
 VSShaderLib shader;
 
-const int numObjs = NUM_OBJS + NUM_CHEERIOS;
+const int numObjs = NUM_OBJS + NUM_CHEERIOS + NUM_PACKETS + NUM_ORANGES;
 struct MyMesh mesh[numObjs];
 int objId = 0; //id of the object mesh - to be used as index of mesh: mesh[objID] means the current mesh
 
@@ -70,6 +75,8 @@ Car* car;
 Table* table;
 LightSource* candles[POINT_LIGHTS];
 std::array<Cheerio, NUM_CHEERIOS> trackLimit;
+std::array<ButterPacket, NUM_PACKETS> obstacles;
+std::array<Orange, NUM_ORANGES> oranges;
 enum direction { back, forward, left, right };
 bool move_forward = false, move_back = false, rot_left = false, rot_right = false;
 
@@ -91,10 +98,11 @@ GLint lSpotCutOff_uniformId;
 GLint numLights_uniformId, numLights1_uniformId;
 GLint spotOn_uniformId;
 GLint directionalLightOn_uniformId;
+GLint pointLightOn_uniformId;
 
 
 GLint tex_loc, tex_loc1, tex_loc2, texMode_uniformId;
-GLuint TextureArray[3];
+GLuint TextureArray[4];
 
 // Font variables
 /**TEXTUREMAPPEDFONT*/
@@ -125,6 +133,7 @@ float r = 10.0f;
 long myTime, timebase = 0, frame = 0;
 char s[32];
 bool isDirLightOn = true;
+bool pointLightOn = true;
 float directionalLightPos[4] = { 4.0f, 6.0f, 2.0f, 0.0f };//switched from the default pointlight(w = 1) to a directional light (w = 0)
 
 
@@ -158,6 +167,14 @@ void refresh(int value)
 	glutTimerFunc(1000 / 60, refresh, 0);
 }
 
+void timerOrange(int value)
+{
+	for (int i = 0; i < NUM_ORANGES; i++)
+	{
+		oranges[i].updateSpeed();
+	}
+	glutTimerFunc(3000, timerOrange, 0);
+}
 // ------------------------------------------------------------
 //
 // Reshape Callback Function
@@ -227,6 +244,15 @@ void sendDirectionalLightToggle()
 	isDirLightOn = !isDirLightOn;
 }
 
+void toggleCandles()
+{
+	if (pointLightOn)
+		glUniform1i(pointLightOn_uniformId, 0);
+	else
+		glUniform1i(pointLightOn_uniformId, 1);
+	pointLightOn = !pointLightOn;
+}
+
 void checkHeadlights() {
 	if (spotLightsOn) {
 		glUniform1i(spotOn_uniformId, 1);
@@ -238,24 +264,46 @@ void checkHeadlights() {
 void checkLifes();
 void checkCollisions() 
 {
+	int i;
+
 	//check collision with table, if the car goes off the table, the player loses a life and respawns in the initial pos
 	if (!car->checkCollision(*car, *table) && numberLifes > 0){
 		numberLifes--;
 		checkLifes();
 	}
 	//check if the car is colliding with any cheerio
-	for (int i = 0; i < trackLimit.size(); i++) 
+	for (i = 0; i < trackLimit.size(); i++) 
 	{
 		if (car->checkCollision(*car, trackLimit[i])) {
 			car->collided();
 			numCollisions++;
 		}
 	}
+
+	for (i = 0; i < obstacles.size(); i++)
+	{
+		if (car->checkCollision(*car, obstacles[i])) {
+			car->collided();
+			numCollisions++;
+		}
+	}
+	for (i = 0; i < oranges.size(); i++)
+	{
+		if (car->checkCollision(*car, oranges[i])) {
+			car->collided();
+			oranges[i].collided();
+			numCollisions++;
+		}
+		/*for (int j = 0; j < obstacles.size(); j++) {
+			if (oranges[i].checkCollision(oranges[i], obstacles[j]))
+				oranges[i].collided();
+		}*/
+	}
 }
   
 void drawLights() {
 	glUniform1i(directionalLightOn_uniformId, isDirLightOn); // update the switch in the shader (makes no sense)
-
+	glUniform1i(pointLightOn_uniformId, pointLightOn);
 	float res[4];
 	glUniform1i(numLights_uniformId, (GLint)TOTAL_LIGHTS);
 	glUniform1i(numLights1_uniformId, (GLint)TOTAL_LIGHTS);
@@ -311,6 +359,12 @@ void activateTextures() {
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, TextureArray[1]);
+
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, TextureArray[3]);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, TextureArray[4]);
 
 	glUniform1i(tex_loc, 0+numberFonts);
 	glUniform1i(tex_loc1, 1+numberFonts);
@@ -393,6 +447,31 @@ void renderScene(void) {
 		popMatrix(MODEL);
 	}
 
+	//draw obstacles
+	for (int i = 0; i < obstacles.size(); i++) {
+		pushMatrix(MODEL);
+		sendMaterial(obstacles[i].objId);
+		//
+		translate(MODEL, obstacles[i].position[0], obstacles[i].position[1], obstacles[i].position[2]);
+		rotate(MODEL, obstacles[i].rotation, obstacles[i].rotationAxis[0], obstacles[i].rotationAxis[1], obstacles[i].rotationAxis[2]);
+		scale(MODEL, 2.0, 1.0, 1.0);
+		sendMatrices();
+		drawObj(obstacles[i].objId, 0);
+		popMatrix(MODEL);
+	}
+
+	
+	for (int i = 0; i < oranges.size(); i++) {
+		pushMatrix(MODEL);
+		sendMaterial(oranges[i].objId);
+		oranges[i].update();
+		translate(MODEL, oranges[i].position[0], oranges[i].position[1], oranges[i].position[2]);
+		rotate(MODEL, oranges[i].rotation, oranges[i].rotationAxis[0], oranges[i].rotationAxis[1], oranges[i].rotationAxis[2]);
+		sendMatrices();
+		drawObj(oranges[i].objId, 0);
+		popMatrix(MODEL);
+	}
+	
 	//draw table
 	//popMatrix(MODEL);
 	sendMaterial(table->objId);
@@ -423,6 +502,7 @@ void processKeys(unsigned char key, int xx, int yy)
 		break;
 
 	case 'c':
+		toggleCandles();
 		printf("Camera Spherical Coordinates (%f, %f, %f)\n", alpha, beta, r);
 		break;
 	case 'm': glEnable(GL_MULTISAMPLE); break;
@@ -613,8 +693,8 @@ GLuint setupShaders() {
 
 	// Shader for models
 	shader.init();
-	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\lights.vert");
-	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\lights.frag");
+	shader.loadShader(VSShaderLib::VERTEX_SHADER, "shaders\\lights.vert");
+	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "shaders\\lights.frag");
   
 	// set semantics for the shader variables
 	glBindFragDataLocation(shader.getProgramIndex(), 0, "colorOut");
@@ -634,6 +714,8 @@ GLuint setupShaders() {
 	lPos_uniformId = glGetUniformLocation(shader.getProgramIndex(), "l_pos");
 	directionalLightOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "directionalLightOn");
 	glUniform1i(directionalLightOn_uniformId, 1);
+	pointLightOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "pointLightOn");
+	glUniform1i(pointLightOn_uniformId, 1);
 
 	tex_loc = glGetUniformLocation(shader.getProgramIndex(), "texmap");
 	tex_loc1 = glGetUniformLocation(shader.getProgramIndex(), "texmap1");
@@ -771,17 +853,70 @@ void createLights() {
 
 	for (int i = 0; i < POINT_LIGHTS; i++) {
 		candles[i] = new LightSource();
-		float pos[4] = { rand()%50, .5f, rand()%50, 1.0f };
+		float pos[4] = { rand() % 40 -20, .5f, rand() % 40 -20, 1.0f };
 		candles[i]->setPoint(pos);
 	}
 
 }
 
 void createTextures() {
-	glGenTextures(3, TextureArray);
-	TGA_Texture(TextureArray, "..//stone.tga", 0);
-	TGA_Texture(TextureArray, "..//course1.tga", 1);
-	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
+	glGenTextures(4, TextureArray);
+	TGA_Texture(TextureArray, "stone.tga", 0);
+	TGA_Texture(TextureArray, "course1.tga", 1);
+	TGA_Texture(TextureArray, "lightwood.tga", 2);
+	//TGA_Texture(TextureArray, "..//katsbits-rock5//rocks.tga", 3);
+}
+
+void createObstacles()
+{
+
+	float rot = 0;
+	float rotAxis[3] = { 0.0f, 1.0f, 0.0f };
+	float pos[3] = { 0.0, 0.5, 0.0 };
+
+
+	for (int i = 0; i < obstacles.size(); i++)
+	{	
+		pos[0] = (rand() % 40 - 20);
+		pos[2] = (rand() % 40 - 20);
+
+		rot = rand() % 91;
+		//std::cout << pos[0] << "||" << pos[2] << '\n';
+		objId++;
+		obstacles[i] = ButterPacket(objId, pos, rotAxis, rot);
+		memcpy(mesh[obstacles[i].objId].mat.ambient, obstacles[i].amb, 4 * sizeof(float));
+		memcpy(mesh[obstacles[i].objId].mat.diffuse, obstacles[i].diff, 4 * sizeof(float));
+		memcpy(mesh[obstacles[i].objId].mat.specular, obstacles[i].spec, 4 * sizeof(float));
+		memcpy(mesh[obstacles[i].objId].mat.emissive, obstacles[i].emissive, 4 * sizeof(float));
+		mesh[obstacles[i].objId].mat.shininess = obstacles[i].shininess;
+		mesh[obstacles[i].objId].mat.texCount = obstacles[i].texcount;
+		createCube();
+	}
+}
+
+void createOranges()
+{
+
+	float rot = 0;
+	float rotAxis[3] = { 0.0f, 1.0f, 0.0f };
+	float pos[3] = { 0.0, 1.0, 0.0 };
+
+	for (int i = 0; i < oranges.size(); i++)
+	{
+		pos[0] = (rand() % 40 - 20);
+		pos[2] = (rand() % 40 - 20);
+
+		//std::cout << pos[0] << "||" << pos[2] << '\n';
+		objId++;
+		oranges[i] = Orange(objId, pos, rotAxis, rot);
+		memcpy(mesh[oranges[i].objId].mat.ambient, oranges[i].amb, 4 * sizeof(float));
+		memcpy(mesh[oranges[i].objId].mat.diffuse, oranges[i].diff, 4 * sizeof(float));
+		memcpy(mesh[oranges[i].objId].mat.specular, oranges[i].spec, 4 * sizeof(float));
+		memcpy(mesh[oranges[i].objId].mat.emissive, oranges[i].emissive, 4 * sizeof(float));
+		mesh[oranges[i].objId].mat.shininess = oranges[i].shininess;
+		mesh[oranges[i].objId].mat.texCount = oranges[i].texcount;
+		createSphere(oranges[i].radius, oranges[i].divisions);
+	}
 }
 
 // ------------------------------------------------------------
@@ -800,6 +935,8 @@ void init()
 	createCar2();
 	createTable();
 	createTrack();
+	createObstacles();
+	createOranges();
 	createLights(); 
 
 
@@ -848,6 +985,7 @@ int main(int argc, char **argv) {
 	glutTimerFunc(0, timer, 0);
 	glutTimerFunc(0, refresh, 0);
 	glutTimerFunc(0, Timer, 0);
+	glutTimerFunc(0, timerOrange, 0);
 
 	//	return from main loop
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
