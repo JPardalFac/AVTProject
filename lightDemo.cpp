@@ -46,7 +46,7 @@
 #define CAPTION "AVT Light Demo"
 #define SPOT_LIGHTS 	2
 #define DIRECTIONAL 	1
-#define POINT_LIGHTS 	3 //change this value when pointlights are added to the program
+#define POINT_LIGHTS 	6 //change this value when pointlights are added to the program
 
 #define NUM_CHEERIOS 100
 #define NUM_OBJS 10
@@ -95,7 +95,7 @@ GLint normal_uniformId;
 GLint lPos_uniformId;
 GLint lSpotDir_uniformId;
 GLint lSpotCutOff_uniformId;
-GLint numLights_uniformId, numLights1_uniformId;
+//GLint numLights_uniformId, numLights1_uniformId;
 GLint spotOn_uniformId;
 GLint directionalLightOn_uniformId;
 GLint pointLightOn_uniformId;
@@ -141,6 +141,11 @@ float directionalLightPos[4] = { 4.0f, 6.0f, 2.0f, 0.0f };//switched from the de
 int angle = 0;
 int numCollisions = 0;
 
+// ------------------------------------------------------------
+//
+// Timer Callback Functions
+//
+
 void Timer(int value)
 {
 	//if(numberLifes > 0)
@@ -175,6 +180,7 @@ void timerOrange(int value)
 	}
 	glutTimerFunc(3000, timerOrange, 0);
 }
+
 // ------------------------------------------------------------
 //
 // Reshape Callback Function
@@ -234,7 +240,7 @@ void sendMatrices() {
 	glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
 }
 
-//called when directional light is toggled on/off, sends the new value to the shader
+// called when directional light is toggled on/off, sends the new value to the shader
 void sendDirectionalLightToggle()
 {
 	if (isDirLightOn)
@@ -261,7 +267,9 @@ void checkHeadlights() {
 		glUniform1i(spotOn_uniformId, 0);
 	}
 }
+
 void checkLifes();
+
 void checkCollisions() 
 {
 	int i;
@@ -294,10 +302,10 @@ void checkCollisions()
 			oranges[i].collided();
 			numCollisions++;
 		}
-		/*for (int j = 0; j < obstacles.size(); j++) {
+		for (int j = 0; j < obstacles.size(); j++) {
 			if (oranges[i].checkCollision(oranges[i], obstacles[j]))
 				oranges[i].collided();
-		}*/
+		}
 	}
 }
   
@@ -305,26 +313,30 @@ void drawLights() {
 	glUniform1i(directionalLightOn_uniformId, isDirLightOn); // update the switch in the shader (makes no sense)
 	glUniform1i(pointLightOn_uniformId, pointLightOn);
 	float res[4];
-	glUniform1i(numLights_uniformId, (GLint)TOTAL_LIGHTS);
-	glUniform1i(numLights1_uniformId, (GLint)TOTAL_LIGHTS);
+	float dir[4];
+	//glUniform1i(numLights_uniformId, (GLint)TOTAL_LIGHTS);
+	//glUniform1i(numLights1_uniformId, (GLint)TOTAL_LIGHTS);
 	for (int i = 0; i < SPOT_LIGHTS; i++) {
 		multMatrixPoint(VIEW, car->headlights[i]->l_position, res);
-		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_pos").c_str()), 1, res);
-		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(i) + "].l_spotDir").c_str()), 1, car->headlights[i]->direction);
+		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_pos").c_str()), 1, res);
+		multMatrixPoint(VIEW, car->headlights[i]->direction, dir);
+		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_spotDir").c_str()), 1, dir);
+		//glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_spotDir").c_str()), 1, car->headlights[i]->direction);
 		glUniform1f(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_cutoff").c_str()), car->headlights[i]->spot_cutoff);
 		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
 		//std::cout << i << std::endl;
 	}
 
 	multMatrixPoint(VIEW, directionalLightPos, res);   //lightPos definido em World Coord so is converted to eye space
-	glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(SPOT_LIGHTS) + "].l_pos").c_str()), 1, res);
+	glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(SPOT_LIGHTS) + "].l_pos").c_str()), 1, res);
 	glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(SPOT_LIGHTS) + "].type").c_str()), 2);
 	//std::cout << SPOT_LIGHTS << std::endl;
+
 	for (int j = 0; j < POINT_LIGHTS; j++) {
 		//if (j == 2) { candles[j]->l_position[0] += angle; }
 		multMatrixPoint(VIEW, candles[j]->l_position, res);   //lightPos definido em World Coord so is converted to eye space
 		//std::cout << candles[j]->l_position[0] << ", " << candles[j]->l_position[1] << ", " << candles[j]->l_position[2] << std::endl;
-		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(j+SPOT_LIGHTS+DIRECTIONAL) + "].l_pos").c_str()), 1, res);
+		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(j+SPOT_LIGHTS+DIRECTIONAL) + "].l_pos").c_str()), 1, res);
 		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(j+SPOT_LIGHTS+DIRECTIONAL) + "].type").c_str()), 0);
 		//std::cout << j + SPOT_LIGHTS + DIRECTIONAL << std::endl;
 	}
@@ -434,8 +446,8 @@ void renderScene(void) {
 		popMatrix(MODEL);
 
 	}
-
 	popMatrix(MODEL);
+
 	//draw trackLimiter
 	for (int i = 0; i < trackLimit.size(); i++) {
 		pushMatrix(MODEL);
@@ -460,7 +472,7 @@ void renderScene(void) {
 		popMatrix(MODEL);
 	}
 
-	
+	//draw oranges
 	for (int i = 0; i < oranges.size(); i++) {
 		pushMatrix(MODEL);
 		sendMaterial(oranges[i].objId);
@@ -708,8 +720,8 @@ GLuint setupShaders() {
 	vm_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_viewModel");
 	normal_uniformId = glGetUniformLocation(shader.getProgramIndex(), "m_normal");
 	//lights
-	numLights_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights");
-	numLights1_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights1");
+	//numLights_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights");
+	//numLights1_uniformId = glGetUniformLocation(shader.getProgramIndex(), "numLights1");
 	spotOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "spotOn");
 	lPos_uniformId = glGetUniformLocation(shader.getProgramIndex(), "l_pos");
 	directionalLightOn_uniformId = glGetUniformLocation(shader.getProgramIndex(), "directionalLightOn");

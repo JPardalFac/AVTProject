@@ -43,7 +43,7 @@ void LightSource::setAmb(float dir[4])
 void LightSource::rotate(float rot, float car_pos[4], float des)
 {
 	direction[0] = cos((rot* PI / 180.0)+(PI / 2.f));// *speed;
-	direction[1] = sin((rot* PI / 180.0)+(PI / 2.f));// *speed;
+	direction[2] = -sin((rot* PI / 180.0)+(PI / 2.f));// *speed;
 	
 	//l_position[0] = car_pos[0];
 	//l_position[2] = car_pos[2];
