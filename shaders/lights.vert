@@ -20,6 +20,8 @@ in vec4 position;
 in vec4 normal;    //por causa do gerador de geometria
 in vec4 texCoord;
 
+out vec4 positionForFog;
+
 out Data {
 	vec3 normal;
 	vec3 eye;
@@ -32,6 +34,7 @@ void main () {
 
 	vec4 pos = m_viewModel * position;
 	
+	positionForFog = pos;
 	
 	for(int i =0; i < TOTAL_LIGHTS; i++){
 		DataOut[i].normal = normalize(m_normal * normal.xyz);

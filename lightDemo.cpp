@@ -47,6 +47,7 @@
 
 #define NUM_CHEERIOS 120
 #define NUM_OBJS 10
+#define SKYBOX 6
 
 #define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
 
@@ -61,7 +62,7 @@ camera* cam = new camera();
 
 VSShaderLib shader;
 
-const int numObjs = NUM_OBJS + NUM_CHEERIOS;
+const int numObjs = NUM_OBJS + NUM_CHEERIOS + SKYBOX;
 struct MyMesh mesh[numObjs];
 int objId = 0; //id of the object mesh - to be used as index of mesh: mesh[objID] means the current mesh
 
@@ -70,6 +71,7 @@ Car* car;
 Table* table;
 LightSource* candles[POINT_LIGHTS];
 std::array<Cheerio, NUM_CHEERIOS> trackLimit;
+std::array<Object, SKYBOX> skybox;
 enum direction { back, forward, left, right };
 bool move_forward = false, move_back = false, rot_left = false, rot_right = false;
 
@@ -242,7 +244,6 @@ void checkCollisions()
 		numberLifes--;
 		checkLifes();
 	}
-	//car->resetCollisionFlag();
 	//check if the car is colliding with any cheerio
 	for (int i = 0; i < trackLimit.size(); i++) 
 	{
@@ -391,6 +392,18 @@ void renderScene(void) {
 		rotate(MODEL, trackLimit[i].rotation, trackLimit[i].rotationAxis[0], trackLimit[i].rotationAxis[1], trackLimit[i].rotationAxis[2]);
 		sendMatrices();
 		drawObj(trackLimit[i].objId, 0);
+		popMatrix(MODEL);
+	}
+	//draw skybox
+	for (int i = 0; i < skybox.size(); i++) {
+		pushMatrix(MODEL);
+		sendMaterial(skybox[i].objId);
+		translate(MODEL, skybox[i].position[0], skybox[i].position[1], skybox[i].position[2]);
+		//rotate(MODEL, w->currentRot, w->movementRotAxis[0], w->movementRotAxis[1], w->movementRotAxis[2]);
+		//rotate(MODEL, skybox[i].rotation, skybox[i].rotationAxis[0], skybox[i].rotationAxis[1], skybox[i].rotationAxis[2]);
+		rotate(MODEL, skybox[i].rotation, skybox[i].rotationAxis[0], skybox[i].rotationAxis[1], skybox[i].rotationAxis[2]);
+		sendMatrices();
+		drawObj(skybox[i].objId, 0);
 		popMatrix(MODEL);
 	}
 
@@ -560,8 +573,6 @@ void processMouseMotion(int xx, int yy)
 
 	// left mouse button: move camera
 	if (tracking == 1) {
-
-
 		alphaAux = alpha + deltaX;
 		betaAux = beta + deltaY;
 
@@ -608,7 +619,6 @@ void mouseWheel(int wheel, int direction, int x, int y) {
 //
 // Shader Stuff
 //
-
 
 GLuint setupShaders() {
 
@@ -785,6 +795,94 @@ void createTextures() {
 	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
 }
 
+//needs specific materials, a texture, verify that transparency will not oclude game
+void createSkybox() {
+	float padding = table->x / 5;
+	float wallSizeX = table->x * 5;
+	float wallSizeY = 80.0f;
+
+	float initialX = 0;
+	float initialZ = - table->y * 1.5; 
+
+	float rot = 0;
+	float pos[] = {initialX, 0, initialZ};
+	float rotAxis[] = { 0, 1.0f, 0 };
+
+	int wallsUsedSoFar = 0;
+	
+	//values of position and rotation for each wall of the skybox
+	for(int i = 0; i < skybox.size()-1; i++){ //taking the last quad (ground quad), since that has a different size
+		switch (i) {
+		case 0:	//back wall, initial values will do
+			pos[0] = initialX;
+			pos[2] = initialZ;
+			rot = 0;
+			break;	 
+		case 1: //front wall, blocks the view =(
+			pos[0] = 0; 
+			pos[2] = -initialZ;
+			rot = 0;
+			break;
+		case 2: //left wall
+			pos[0] = - table->x * 1.5;
+			pos[2] = 0;
+			rot = 90;
+			break;
+		case 3: //right wall
+			pos[0] = table->x * 1.5;
+			pos[2] = 0;
+			rot = 90;
+			break;
+		}
+		objId++;
+		skybox[i] = Cheerio(objId, pos, rotAxis, rot);
+		memcpy(mesh[skybox[i].objId].mat.ambient, car[0].amb, 4 * sizeof(float));
+		memcpy(mesh[skybox[i].objId].mat.diffuse, car[0].diff, 4 * sizeof(float));
+		memcpy(mesh[skybox[i].objId].mat.specular, trackLimit[0].spec, 4 * sizeof(float));
+		memcpy(mesh[skybox[i].objId].mat.emissive, trackLimit[0].emissive, 4 * sizeof(float));
+		mesh[skybox[i].objId].mat.shininess = trackLimit[0].shininess;
+		mesh[skybox[i].objId].mat.texCount = trackLimit[0].texcount;
+
+		createQuad(wallSizeX, wallSizeY);
+		wallsUsedSoFar++;
+	}
+
+	//floor and ceiling
+	for(int i = wallsUsedSoFar; i <= skybox.size(); i++){
+		//position the ground bellow the table
+		pos[0] = 0;
+		if(i == 5)			//floor
+			pos[1] = -3;
+		if(i == 6)
+			pos[1] = 20;	// ceiling ;this value needs to be bigger than the eye position in camera.h
+		pos[2] = 0;
+
+		//set the rotation to the xx axis
+		rotAxis[1] = 0;		
+		rotAxis[0] = 1.0f;
+	
+		//set the rotation angle
+		rot = -90;
+		objId++;
+
+		int index = skybox.size() - 2; //starts as if i== 5, with this index we access the ground
+		if(i== 6)
+			index = skybox.size() - 1;	//with this index we access the floor
+
+		skybox[index] = Cheerio(objId, pos, rotAxis, rot);
+
+		memcpy(mesh[skybox[index].objId].mat.ambient, car[0].amb, 4 * sizeof(float));
+		memcpy(mesh[skybox[index].objId].mat.diffuse, car[0].diff, 4 * sizeof(float));
+		memcpy(mesh[skybox[index].objId].mat.specular, trackLimit[0].spec, 4 * sizeof(float));
+		memcpy(mesh[skybox[index].objId].mat.emissive, trackLimit[0].emissive, 4 * sizeof(float));
+		mesh[skybox[index].objId].mat.shininess = trackLimit[0].shininess;
+		mesh[skybox[index].objId].mat.texCount = trackLimit[0].texcount;
+
+		createQuad(table->x * 3 , table->y * 3);
+	}
+
+}
+
 // ------------------------------------------------------------
 //
 // Model loading and OpenGL setup
@@ -801,12 +899,13 @@ void init()
 	createCar2();
 	createTable();
 	createTrack();
-	createLights(); 
+	createLights();
+	createSkybox();
 
 
 	// some GL settings
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 

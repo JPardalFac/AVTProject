@@ -7,7 +7,7 @@
 class camera
 {
 public:
-	float eye[3] = { 0, 15, 0 }; //{ 0, 8, -1 };	//make sure this values are within the ortho[] values!, depending on the up vector, the component of the ortho box that will be compared to the values of this vector will vary
+	float eye[3] = { 0, 14, 0 }; //{ 0, 8, -1 };	//make sure this values are within the ortho[] values!, depending on the up vector, the component of the ortho box that will be compared to the values of this vector will vary
 	float at[3] =  { 0, 0, 0 };
 	float up[3] = { 0, 0, -1 }; 
 	float fixedPerspectiveFov = 120;

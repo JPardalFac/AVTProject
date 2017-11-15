@@ -10,6 +10,8 @@ uniform sampler2D texmap;
 uniform sampler2D texmap1;
 uniform int texMode;
 
+in vec4 positionForFog;
+
 out vec4 colorOut;
 
 uniform int numLights1;
@@ -40,6 +42,12 @@ in Data {
 	vec2 tex_coord;
 } DataIn[TOTAL_LIGHTS];
  
+ 
+const vec3 fogColor = vec3 (0.5, 0.5, 0.5);
+const float fogDensity = 0.05;
+
+vec3 applyFog(vec3 color, float distance);	//prototype
+
  // Calculates the specular component and intensity of a spot light
  void calculateSpotLights(out vec4 spec, out float intensity, int ind){
 	vec3 ld = normalize(DataIn[ind].lightDir);
@@ -128,8 +136,24 @@ void main() {
 	else if(texMode == 2){ //multitexturing
 		colorOut = max(total_intensity * mat.diffuse + total_spec, mat.ambient) * texel * texel1;
 	}
+	
+	//*************************************************
+	float distance = length(positionForFog);
+	vec3 finalColor = applyFog(colorOut.xyz, distance);	
+	colorOut = vec4(finalColor, 1);
 }
 
+//color - original color of the fragment 
+//distance - camera to point distance
+vec3 applyFog(vec3 color, float distance) 
+{
+	//float fogAmount = exp(-distance * fogDensity);
+	float fogAmount = 1.0 / exp(distance * fogDensity);
+	fogAmount = clamp(fogAmount, 0.0, 1.0);
+	vec3 finalColor = mix(fogColor, color, fogAmount);
+	
+	return finalColor;
+}
 
 
 
