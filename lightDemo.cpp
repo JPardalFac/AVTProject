@@ -315,7 +315,7 @@ void checkHeadlights() {
 	}
 }
 
-void checkLifes();
+void checkLifes();	//prototype
 
 void checkCollisions() 
 {
@@ -326,6 +326,7 @@ void checkCollisions()
 		numberLifes--;
 		checkLifes();
 	}
+	
 	//check if the car is colliding with any cheerio
 	for (i = 0; i < trackLimit.size(); i++) 
 	{
@@ -335,7 +336,8 @@ void checkCollisions()
 			numCollisions++;
 		}
 	}
-
+	
+	//collisions with butter packs
 	for (i = 0; i < obstacles.size(); i++)
 	{
 		if (car->checkCollision(*car, obstacles[i])) {
@@ -343,10 +345,11 @@ void checkCollisions()
 			numCollisions++;
 		}
 	}
+	
+	//collisions with oranges
 	for (i = 0; i < oranges.size(); i++)
 	{
 		if (car->checkCollision(*car, oranges[i])) {
-			//car->collided(oranges[i]);
 			oranges[i].collided();
 			numberLifes--;
 			checkLifes();
@@ -514,6 +517,7 @@ void renderScene(void) {
 		drawObj(trackLimit[i].objId, 0);
 		popMatrix(MODEL);
 	}
+	
 	//draw skybox
 	for (int i = 0; i < skybox.size(); i++) {
 		pushMatrix(MODEL);
@@ -544,7 +548,8 @@ void renderScene(void) {
 	for (int i = 0; i < oranges.size(); i++) {
 		pushMatrix(MODEL);
 		sendMaterial(oranges[i].objId);
-		oranges[i].update();
+		if(!pause)
+			oranges[i].update();
 		translate(MODEL, oranges[i].position[0], oranges[i].position[1], oranges[i].position[2]);
 		rotate(MODEL, oranges[i].rotation, oranges[i].rotationAxis[0], oranges[i].rotationAxis[1], oranges[i].rotationAxis[2]);
 		sendMatrices();
@@ -990,31 +995,33 @@ void createTrack()
 		}
 		if (i == 40) {
 			pos[0] -= 10;
-			pos[2] += spaceBetCheerios;
+			pos[2] = pos[2];
 		}
 		else if (i > 40 && i < 55) 
 		{
 			pos[0] += spaceBetCheerios;
 			pos[2] += spaceBetCheerios;
-		}if (i == 55)
-			pos[0] += 5;
-		else if(i> 55 && i <70)
+		}if (i == 55 || i==56 || i == 57)
+			pos[0] += 2;
+		else if(i> 57 && i <70)
 		{
 			pos[0] += spaceBetCheerios;
 			pos[2] -= spaceBetCheerios;
 		}
-		if (i == 70)
-			pos[2] -= 5;
-		else if (i > 70 && i <85)
+		if (i == 70 || i == 71 || i == 72 )
+			pos[2] -= 2;
+		else if (i > 72 && i <85)
 		{
 			pos[0] -= spaceBetCheerios;
 			pos[2] -= spaceBetCheerios;
 		}
-		else if (i >= 85 && i < 100)
+		if (i == 85 || i == 86 || i == 87)
+			pos[0] -= 2;
+		else if (i > 87 && i < 102)
 		{
 			pos[0] -= spaceBetCheerios; //update the x coord of each new cheerio
 			pos[2] += spaceBetCheerios;
-		}
+		}/*/**/
 			objId++;
 		trackLimit[i] = Cheerio(objId, pos, rotAxis, rot);
 		memcpy(mesh[trackLimit[i].objId].mat.ambient, trackLimit[i].amb, 4 * sizeof(float));
