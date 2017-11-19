@@ -44,16 +44,23 @@
 
 #define PI 3.1415289
 #define CAPTION "AVT Light Demo"
+#define frand()			((float)rand()/RAND_MAX)
+
 #define SPOT_LIGHTS 	2
 #define DIRECTIONAL 	1
 #define POINT_LIGHTS 	6 //change this value when pointlights are added to the program
 
-#define NUM_CHEERIOS 100
+#define NUM_CHEERIOS 120
 #define NUM_OBJS 10
+
+#define SKYBOX 6
+
+#define MAX_PARTICLES 10
+#define PARTICLE 1
 #define NUM_PACKETS 5
 #define NUM_ORANGES 6
 
-#define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS
+#define TOTAL_LIGHTS SPOT_LIGHTS + DIRECTIONAL + POINT_LIGHTS 
 
 int WindowHandle = 0;
 int WinX = 640, WinY = 480;
@@ -66,7 +73,8 @@ camera* cam = new camera();
 
 VSShaderLib shader;
 
-const int numObjs = NUM_OBJS + NUM_CHEERIOS + NUM_PACKETS + NUM_ORANGES;
+const int numObjs = NUM_OBJS + NUM_CHEERIOS + NUM_PACKETS + NUM_ORANGES + SKYBOX;
+
 struct MyMesh mesh[numObjs];
 int objId = 0; //id of the object mesh - to be used as index of mesh: mesh[objID] means the current mesh
 
@@ -75,6 +83,7 @@ Car* car;
 Table* table;
 LightSource* candles[POINT_LIGHTS];
 std::array<Cheerio, NUM_CHEERIOS> trackLimit;
+std::array<Object, SKYBOX> skybox;
 std::array<ButterPacket, NUM_PACKETS> obstacles;
 std::array<Orange, NUM_ORANGES> oranges;
 enum direction { back, forward, left, right };
@@ -100,8 +109,7 @@ GLint spotOn_uniformId;
 GLint directionalLightOn_uniformId;
 GLint pointLightOn_uniformId;
 
-
-GLint tex_loc, tex_loc1, tex_loc2, texMode_uniformId;
+GLint tex_loc, tex_loc1, tex_loc2, tex_locParticle, texMode_uniformId;
 GLuint TextureArray[4];
 
 // Font variables
@@ -136,10 +144,24 @@ bool isDirLightOn = true;
 bool pointLightOn = true;
 float directionalLightPos[4] = { 4.0f, 6.0f, 2.0f, 0.0f };//switched from the default pointlight(w = 1) to a directional light (w = 0)
 
+//particle system
+bool fireworks = false;
 
 //test variables
 int angle = 0;
 int numCollisions = 0;
+
+typedef struct {
+	float	life;		// vida
+	float	fade;		// fade
+	float	r, g, b;    // color
+	GLfloat x, y, z;    // posi��o
+	GLfloat vx, vy, vz; // velocidade 
+	GLfloat ax, ay, az; // acelera��o
+} Particle;
+
+Particle fireworkSystem[MAX_PARTICLES];
+int dead_num_particles = 0;
 
 // ------------------------------------------------------------
 //
@@ -148,8 +170,6 @@ int numCollisions = 0;
 
 void Timer(int value)
 {
-	//if(numberLifes > 0)
-	//	numberLifes -= 1;
 	angle++;
 	glutPostRedisplay();
 	glutTimerFunc(100, Timer, 0);
@@ -172,6 +192,33 @@ void refresh(int value)
 	glutTimerFunc(1000 / 60, refresh, 0);
 }
 
+//used to update the fireworks
+void iterate(int value)
+{
+	int i;
+	float h;
+
+	/* M�todo de Euler de integra��o de eq. diferenciais ordin�rias
+	h representa o step de tempo; dv/dt = a; dx/dt = v; e conhecem-se os valores iniciais de x e v */
+
+	h = 0.125f;
+	//h = 0.033;
+	if (fireworks) {
+
+		for (i = 0; i < MAX_PARTICLES; i++)
+		{
+			fireworkSystem[i].x += (h*fireworkSystem[i].vx);
+			fireworkSystem[i].y += (h*fireworkSystem[i].vy);
+			fireworkSystem[i].z += (h*fireworkSystem[i].vz);
+			fireworkSystem[i].vx += (h*fireworkSystem[i].ax);
+			fireworkSystem[i].vy += (h*fireworkSystem[i].ay);
+			fireworkSystem[i].vz += (h*fireworkSystem[i].az);
+			fireworkSystem[i].life -= fireworkSystem[i].fade;
+		}
+		glutPostRedisplay();
+		glutTimerFunc(33, iterate, 0);
+	}
+  
 void timerOrange(int value)
 {
 	for (int i = 0; i < NUM_ORANGES; i++)
@@ -283,7 +330,8 @@ void checkCollisions()
 	for (i = 0; i < trackLimit.size(); i++) 
 	{
 		if (car->checkCollision(*car, trackLimit[i])) {
-			car->collided();
+			car->collided(trackLimit[i]);
+			trackLimit[i].collided(car->position);
 			numCollisions++;
 		}
 	}
@@ -404,6 +452,8 @@ void restart() {
 }
 
 void renderScene(void) {
+
+	GLint loc;
 	FrameCount++;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	// load identity matrices
@@ -414,6 +464,9 @@ void renderScene(void) {
 	if (cam->activeCam == cam->MOVINGPERSPECTIVE)
 		cam->sendCamCoords(camX, camY, camZ);
 	cam->updateLookAt(car->position);
+
+	float particle_color[4];
+
 	// use our shader
 	shader.Use();
 
@@ -458,6 +511,18 @@ void renderScene(void) {
 		drawObj(trackLimit[i].objId, 0);
 		popMatrix(MODEL);
 	}
+	//draw skybox
+	for (int i = 0; i < skybox.size(); i++) {
+		pushMatrix(MODEL);
+		sendMaterial(skybox[i].objId);
+		translate(MODEL, skybox[i].position[0], skybox[i].position[1], skybox[i].position[2]);
+		//rotate(MODEL, w->currentRot, w->movementRotAxis[0], w->movementRotAxis[1], w->movementRotAxis[2]);
+		//rotate(MODEL, skybox[i].rotation, skybox[i].rotationAxis[0], skybox[i].rotationAxis[1], skybox[i].rotationAxis[2]);
+		rotate(MODEL, skybox[i].rotation, skybox[i].rotationAxis[0], skybox[i].rotationAxis[1], skybox[i].rotationAxis[2]);
+		sendMatrices();
+		drawObj(skybox[i].objId, 0);
+		popMatrix(MODEL);
+	}
 
 	//draw obstacles
 	for (int i = 0; i < obstacles.size(); i++) {
@@ -495,8 +560,102 @@ void renderScene(void) {
 
 	drawFonts();
 
+	if (fireworks) {
+		// draw fireworks particles
+		objId++;  //quad for particle
+
+
+
+		/*//////////////////////////////
+
+		glUniform1i(tex_loc, 0 + numberFonts);
+		glUniform1i(tex_loc1, 1 + numberFonts);
+		//////////////////////////////////*/
+		//CHANGE THIS TEXTURE ARRAY INDEX
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, TextureArray[0]); //particle.bmp associated to TU0 
+		glDisable(GL_DEPTH_TEST); /* n�o interessa o z-buffer: as part�culas podem ser desenhadas umas por cima das outras sem problemas de ordena��o */
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		
+		glUniform1i(tex_locParticle, 1);
+		glUniform1i(texMode_uniformId, 2); // draw modulated textured particles 
+
+		for (int i = 0; i < MAX_PARTICLES; i++)
+		{
+			if (fireworkSystem[i].life > 0.0f) /* s� desenha as que ainda est�o vivas */
+			{
+
+				/* A vida da part�cula representa o canal alpha da cor. Como o blend est� activo a cor final � a soma da cor rgb do fragmento multiplicada pelo
+				alpha com a cor do pixel destino */
+
+				particle_color[0] = fireworkSystem[i].r;
+				particle_color[1] = fireworkSystem[i].g;
+				particle_color[2] = fireworkSystem[i].b;
+				particle_color[3] = fireworkSystem[i].life;
+
+				// send the material - diffuse color modulated with texture
+				loc = glGetUniformLocation(shader.getProgramIndex(), "mat.diffuse");
+				glUniform4fv(loc, 1, particle_color);
+
+				pushMatrix(MODEL);
+				translate(MODEL, fireworkSystem[i].x, fireworkSystem[i].y, fireworkSystem[i].z);
+
+				// send matrices to OGL
+				computeDerivedMatrix(PROJ_VIEW_MODEL);
+				glUniformMatrix4fv(vm_uniformId, 1, GL_FALSE, mCompMatrix[VIEW_MODEL]);
+				glUniformMatrix4fv(pvm_uniformId, 1, GL_FALSE, mCompMatrix[PROJ_VIEW_MODEL]);
+				computeNormalMatrix3x3();
+				glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
+
+				glBindVertexArray(mesh[objId].vao);
+				glDrawElements(mesh[objId].type, mesh[objId].numIndexes, GL_UNSIGNED_INT, 0);
+				popMatrix(MODEL);
+			}
+			else dead_num_particles++;
+		}
+		if (dead_num_particles == MAX_PARTICLES) {
+			fireworks = false;
+			dead_num_particles = 0;
+			printf("All particles dead\n");
+		}
+
+	}
+
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glutSwapBuffers();
+}
+
+void initParticles(void)
+{
+	GLfloat v, theta, phi;
+	int i;
+
+	for (i = 0; i<MAX_PARTICLES; i++)
+	{
+		v = 0.8*frand() + 0.2;
+		phi = frand()*PI;
+		theta = 2.0*frand()*PI;
+
+		fireworkSystem[i].x = 0.0f;
+		fireworkSystem[i].y = 2.0f;
+		fireworkSystem[i].z = 0.0f;
+		fireworkSystem[i].vx = v * cos(theta) * sin(phi);
+		fireworkSystem[i].vy = v * cos(phi);
+		fireworkSystem[i].vz = v * sin(theta) * sin(phi);
+		fireworkSystem[i].ax = 0.1f; /* simular um pouco de vento */
+		fireworkSystem[i].ay = -0.15f; /* simular a acelera��o da gravidade */
+		fireworkSystem[i].az = 0.0f;
+
+		/* tom amarelado que vai ser multiplicado pela textura que varia entre branco e preto */
+		fireworkSystem[i].r = 0.882f;
+		fireworkSystem[i].g = 0.552f;
+		fireworkSystem[i].b = 0.211f;
+
+		fireworkSystem[i].life = 1.0f;		/* vida inicial */
+		fireworkSystem[i].fade = 0.005f;	    /* step de decr�scimo da vida para cada itera��o */
+	}
 }
 
 // ------------------------------------------------------------
@@ -573,6 +732,11 @@ void processKeys(unsigned char key, int xx, int yy)
 			gameOver = !gameOver;
 			restart();
 		}
+		break;
+	case 'e':
+		fireworks = true;
+		initParticles();
+		glutTimerFunc(0, iterate, 0);  //timer for particle system
 		break;
 	}
 
@@ -651,8 +815,6 @@ void processMouseMotion(int xx, int yy)
 
 	// left mouse button: move camera
 	if (tracking == 1) {
-
-
 		alphaAux = alpha + deltaX;
 		betaAux = beta + deltaY;
 
@@ -700,7 +862,6 @@ void mouseWheel(int wheel, int direction, int x, int y) {
 // Shader Stuff
 //
 
-
 GLuint setupShaders() {
 
 	// Shader for models
@@ -731,6 +892,7 @@ GLuint setupShaders() {
 
 	tex_loc = glGetUniformLocation(shader.getProgramIndex(), "texmap");
 	tex_loc1 = glGetUniformLocation(shader.getProgramIndex(), "texmap1");
+	tex_locParticle = glGetUniformLocation(shader.getProgramIndex(), "texParticle");
 	texMode_uniformId = glGetUniformLocation(shader.getProgramIndex(), "texMode"); // different modes of texturing
 
 	printf("InfoLog for Hello World Shader\n%s\n\n", shader.getAllInfoLogs().c_str());
@@ -739,8 +901,9 @@ GLuint setupShaders() {
 }
 
 void createCar2() {
+	float initialX = -50 / 2 + 5; //-50 -> tableX
 	car = new Car();
-	car->init(0, new float[3]{ .5f, 0.7f, -.5f }, new float[3]{ 0,1,0 }, 0);
+	car->init(0, new float[3]{ initialX, 0.7f, -.5f }, new float[3]{ 0,1,0 }, -225);
 	//car.setColor(mesh);
 	objId = car->objId;
 	memcpy(mesh[car->objId].mat.ambient, car->amb, 4 * sizeof(float));
@@ -928,7 +1091,95 @@ void createOranges()
 		mesh[oranges[i].objId].mat.shininess = oranges[i].shininess;
 		mesh[oranges[i].objId].mat.texCount = oranges[i].texcount;
 		createSphere(oranges[i].radius, oranges[i].divisions);
+  }
+}
+
+//needs specific materials, a texture, verify that transparency will not oclude game
+void createSkybox() {
+	float padding = table->x / 5;
+	float wallSizeX = table->x * 5;
+	float wallSizeY = 80.0f;
+
+	float initialX = 0;
+	float initialZ = - table->y * 1.5; 
+
+	float rot = 0;
+	float pos[] = {initialX, 0, initialZ};
+	float rotAxis[] = { 0, 1.0f, 0 };
+
+	int wallsUsedSoFar = 0;
+	
+	//values of position and rotation for each wall of the skybox
+	for(int i = 0; i < skybox.size()-1; i++){ //taking the last quad (ground quad), since that has a different size
+		switch (i) {
+		case 0:	//back wall, initial values will do
+			pos[0] = initialX;
+			pos[2] = initialZ;
+			rot = 0;
+			break;	 
+		case 1: //front wall, blocks the view =(
+			pos[0] = 0; 
+			pos[2] = -initialZ;
+			rot = 0;
+			break;
+		case 2: //left wall
+			pos[0] = - table->x * 1.5;
+			pos[2] = 0;
+			rot = 90;
+			break;
+		case 3: //right wall
+			pos[0] = table->x * 1.5;
+			pos[2] = 0;
+			rot = 90;
+			break;
+		}
+		objId++;
+		skybox[i] = Cheerio(objId, pos, rotAxis, rot);
+		memcpy(mesh[skybox[i].objId].mat.ambient, car[0].amb, 4 * sizeof(float));
+		memcpy(mesh[skybox[i].objId].mat.diffuse, car[0].diff, 4 * sizeof(float));
+		memcpy(mesh[skybox[i].objId].mat.specular, trackLimit[0].spec, 4 * sizeof(float));
+		memcpy(mesh[skybox[i].objId].mat.emissive, trackLimit[0].emissive, 4 * sizeof(float));
+		mesh[skybox[i].objId].mat.shininess = trackLimit[0].shininess;
+		mesh[skybox[i].objId].mat.texCount = trackLimit[0].texcount;
+
+		createQuad(wallSizeX, wallSizeY);
+		wallsUsedSoFar++;
 	}
+
+	//floor and ceiling
+	for(int i = wallsUsedSoFar; i <= skybox.size(); i++){
+		//position the ground bellow the table
+		pos[0] = 0;
+		if(i == 5)			//floor
+			pos[1] = -3;
+		if(i == 6)
+			pos[1] = 20;	// ceiling ;this value needs to be bigger than the eye position in camera.h
+		pos[2] = 0;
+
+		//set the rotation to the xx axis
+		rotAxis[1] = 0;		
+		rotAxis[0] = 1.0f;
+	
+		//set the rotation angle
+		rot = -90;
+		objId++;
+
+		int index = skybox.size() - 2; //starts as if i== 5, with this index we access the ground
+		if(i== 6)
+			index = skybox.size() - 1;	//with this index we access the floor
+
+		skybox[index] = Cheerio(objId, pos, rotAxis, rot);
+
+		memcpy(mesh[skybox[index].objId].mat.ambient, car[0].amb, 4 * sizeof(float));
+		memcpy(mesh[skybox[index].objId].mat.diffuse, car[0].diff, 4 * sizeof(float));
+		memcpy(mesh[skybox[index].objId].mat.specular, trackLimit[0].spec, 4 * sizeof(float));
+		memcpy(mesh[skybox[index].objId].mat.emissive, trackLimit[0].emissive, 4 * sizeof(float));
+		mesh[skybox[index].objId].mat.shininess = trackLimit[0].shininess;
+		mesh[skybox[index].objId].mat.texCount = trackLimit[0].texcount;
+
+		createQuad(table->x * 3 , table->y * 3);
+	}
+
 }
 
 // ------------------------------------------------------------
@@ -943,23 +1194,32 @@ void init()
 	camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
 	camY = r *   						     sin(beta * 3.14f / 180.0f);
 
+	int texcount = 0;
+
 	createTextures();
 	createCar2();
 	createTable();
 	createTrack();
+	createLights();
+	createSkybox();
 	createObstacles();
 	createOranges();
-	createLights(); 
 
 
 	// some GL settings
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 	/**TEXTUREMAPPEDFONT*/
 	font1 = new TextureMappedFont("..//font1.bmp");
+	//BMP_Texture(TextureArray, "particula.bmp", 1); //n�o estamos a usar glbmp para carregar texturas
+
+
+	objId++;
+	mesh[objId].mat.texCount = texcount;
+	createQuad(2, 2);
 }
 
 // ------------------------------------------------------------
