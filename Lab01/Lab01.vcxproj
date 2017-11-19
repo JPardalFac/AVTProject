@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="..\AVTmathLib.h" />
     <ClInclude Include="..\basic_geometry.h" />
+    <ClInclude Include="..\ButterPacket.h" />
     <ClInclude Include="..\camera.h" />
     <ClInclude Include="..\Car.h" />
     <ClInclude Include="..\Cheerio.h" />
@@ -29,6 +30,7 @@
     <ClInclude Include="..\load_bmp.h" />
     <ClInclude Include="..\mat_matr.h" />
     <ClInclude Include="..\Object.h" />
+    <ClInclude Include="..\Orange.h" />
     <ClInclude Include="..\Table.h" />
     <ClInclude Include="..\TextureMappedFont.h" />
     <ClInclude Include="..\TGA.h" />
@@ -39,6 +41,7 @@
   <ItemGroup>
     <ClCompile Include="..\AVTmathLib.cpp" />
     <ClCompile Include="..\basic_geometry.cpp" />
+    <ClCompile Include="..\ButterPacket.cpp" />
     <ClCompile Include="..\camera.cpp" />
     <ClCompile Include="..\Car.cpp" />
     <ClCompile Include="..\Cheerio.cpp" />
@@ -47,6 +50,7 @@
     <ClCompile Include="..\load_bmp.cpp" />
     <ClCompile Include="..\mat_matr.cpp" />
     <ClCompile Include="..\Object.cpp" />
+    <ClCompile Include="..\Orange.cpp" />
     <ClCompile Include="..\Table.cpp" />
     <ClCompile Include="..\TextureMappedFont.cpp" />
     <ClCompile Include="..\TGA.cpp" />

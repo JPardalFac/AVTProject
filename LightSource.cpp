@@ -12,8 +12,10 @@ void LightSource::setSpot(float pos[4], float dir[4], float cutoff)
 	direction[2] = dir[2];
 	direction[3] = dir[3];
 
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 4; i++) {
 		initialPos[i] = pos[i];
+		initialDirection[i] = direction[i];
+	}
 
 	spot_cutoff = cutoff;
 
@@ -47,8 +49,6 @@ void LightSource::rotate(float rot, float car_pos[4], float des)
 	
 	//l_position[0] = car_pos[0];
 	//l_position[2] = car_pos[2];
-
-	
 }
 
 void LightSource::move(int direction, float dx, float dy)
@@ -65,4 +65,10 @@ void LightSource::move(int direction, float dx, float dy)
 		//currentRot -= 4;
 		break;
 	}
+}
+//called when the car respawns
+void LightSource::resetRotation()
+{
+	for(int i = 0; i < 4; i++ )
+		direction[i] = initialDirection[i];
 }

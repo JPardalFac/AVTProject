@@ -40,7 +40,6 @@
 
 #include "TGA.h"
 #include "TextureMappedFont.h"
-#include "lightDemo.h"
 
 #define PI 3.1415289
 #define CAPTION "AVT Light Demo"
@@ -218,6 +217,7 @@ void iterate(int value)
 		glutPostRedisplay();
 		glutTimerFunc(33, iterate, 0);
 	}
+}
   
 void timerOrange(int value)
 {
@@ -339,15 +339,18 @@ void checkCollisions()
 	for (i = 0; i < obstacles.size(); i++)
 	{
 		if (car->checkCollision(*car, obstacles[i])) {
-			car->collided();
+			car->collided(obstacles[i]);
 			numCollisions++;
 		}
 	}
 	for (i = 0; i < oranges.size(); i++)
 	{
 		if (car->checkCollision(*car, oranges[i])) {
-			car->collided();
+			//car->collided(oranges[i]);
 			oranges[i].collided();
+			numberLifes--;
+			checkLifes();
+			car->respawn();
 			numCollisions++;
 		}
 		for (int j = 0; j < obstacles.size(); j++) {
@@ -866,8 +869,8 @@ GLuint setupShaders() {
 
 	// Shader for models
 	shader.init();
-	shader.loadShader(VSShaderLib::VERTEX_SHADER, "shaders\\lights.vert");
-	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "shaders\\lights.frag");
+	shader.loadShader(VSShaderLib::VERTEX_SHADER, "..\\shaders\\lights.vert");
+	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "..\\shaders\\lights.frag");
   
 	// set semantics for the shader variables
 	glBindFragDataLocation(shader.getProgramIndex(), 0, "colorOut");
@@ -901,9 +904,9 @@ GLuint setupShaders() {
 }
 
 void createCar2() {
-	float initialX = -50 / 2 + 5; //-50 -> tableX
+	
 	car = new Car();
-	car->init(0, new float[3]{ initialX, 0.7f, -.5f }, new float[3]{ 0,1,0 }, -225);
+	car->init(0, car->initialPos, car->RotAxis, car->initialRot);
 	//car.setColor(mesh);
 	objId = car->objId;
 	memcpy(mesh[car->objId].mat.ambient, car->amb, 4 * sizeof(float));
@@ -1035,10 +1038,10 @@ void createLights() {
 }
 
 void createTextures() {
-	glGenTextures(4, TextureArray);
-	TGA_Texture(TextureArray, "stone.tga", 0);
-	TGA_Texture(TextureArray, "course1.tga", 1);
-	TGA_Texture(TextureArray, "lightwood.tga", 2);
+	glGenTextures(3, TextureArray);
+	TGA_Texture(TextureArray, "..//stone.tga", 0);
+	TGA_Texture(TextureArray, "..//course1.tga", 1);
+	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
 	//TGA_Texture(TextureArray, "..//katsbits-rock5//rocks.tga", 3);
 }
 

@@ -13,6 +13,7 @@ public:
 	float spot_cutoff;
 	float speed = 0.15f;
 	float initialPos[4];
+	float initialDirection[4];
 
 	void setSpot(float pos[4], float dir[4],float cutoff);
 	void setPoint(float pos[4]);
@@ -20,4 +21,5 @@ public:
 
 	void rotate(float rot, float car_pos[4], float des);
 	void move(int direction, float dx, float dy);
+	void resetRotation();
 };

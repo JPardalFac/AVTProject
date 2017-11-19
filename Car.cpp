@@ -12,13 +12,16 @@ void Car::init(int id,float pos[3], float rotAxis[3], float rot)
 		wheels[i]->init(wheelId,wpos,wheelRotAxis,90);
 	}
 	for (int i = 0; i < 2; i++) {
-		float pos[4] = { yWheelpos[i], 0.5f, xWheelpos[i], 1.0f};//{0+i,0.5,0,1};
+		//float pos[4] = { yWheelpos[i], 0.5f, xWheelpos[i], 1.0f};//{0+i,0.5,0,1};
+		
+		float lpos[4] = { pos[0] + yWheelpos[i], 0.5f, pos[2] + xWheelpos[i], 1.0f };
 		float dir[4] = { cos((rot* PI / 180.0) + (PI / 2.f)), 0.0f,  -sin((rot* PI / 180.0) + (PI / 2.f)), 0.0f };
 		headlights[i] = new LightSource();
-		headlights[i]->setSpot(pos,dir, 170);
+		headlights[i]->setSpot(lpos,dir, 170);
 	}
 	//store initPos to use when car respawns
-	setInitialPos(pos);
+	//setInitialPos(pos);
+	setInitialPos(initialPos);
 }
 
 void Car::init(int id, float pos[3], float rotAxis[3], float rot, float size[3])
@@ -120,6 +123,16 @@ void Car::moveToPos(float posToMoveTo[3])
 void Car::respawn()
 {
 	moveToPos(initialPos);
+	resetRotation();
+}
+
+void Car::resetRotation() 
+{
+	rotation = initialRot;
+	for (int i = 0; i < 2; i++)
+	{
+		headlights[i]->resetRotation();
+	}
 }
 
 void Car::resetCollisionFlag()
