@@ -19,9 +19,11 @@ Author: João Madeiras Pereira
 #include <stdio.h>
 #include <string.h>
 
+
 #ifdef _WIN32
 #define M_PI       3.14159265358979323846f
 #endif
+#define frand()			((float)rand()/RAND_MAX)
 
 static inline float 
 DegToRad(float degrees) 
