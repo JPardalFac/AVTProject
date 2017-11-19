@@ -12,10 +12,10 @@ void Car::init(int id,float pos[3], float rotAxis[3], float rot)
 		wheels[i]->init(wheelId,wpos,wheelRotAxis,90);
 	}
 	for (int i = 0; i < 2; i++) {
-		float pos[4] = {0.f+i,.5f,0,1};//{0+i,0.5,0,1};
-		float dir[4] = { 0.f,1,0,0 };
+		float pos[4] = { yWheelpos[i], 0.5f, xWheelpos[i], 1.0f};//{0+i,0.5,0,1};
+		float dir[4] = { cos((rot* PI / 180.0) + (PI / 2.f)), 0.0f,  -sin((rot* PI / 180.0) + (PI / 2.f)), 0.0f };
 		headlights[i] = new LightSource();
-		headlights[i]->setSpot(pos,dir, 120);
+		headlights[i]->setSpot(pos,dir, 170);
 	}
 	//store initPos to use when car respawns
 	setInitialPos(pos);
