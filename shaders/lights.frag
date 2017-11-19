@@ -9,6 +9,7 @@
 
 uniform sampler2D texmap;
 uniform sampler2D texmap1;
+uniform sampler2D texParticle;
 uniform int texMode;
 
 in vec4 positionForFog;
@@ -51,7 +52,7 @@ in Data {
 const vec3 fogColor = vec3 (0.5, 0.5, 0.5);
 const float fogDensity = 0.05;
 
-vec3 applyFog(vec3 color, float distance);	//prototype
+vec4 applyFog(vec4 color, float distance);	//prototype
 
  // Calculates the specular component and intensity of a spot light
  void calculateSpotLights(out vec4 spec, out float intensity, int ind){
@@ -113,6 +114,7 @@ void main() {
 	
 	vec4 texel;
 	vec4 texel1;
+	vec4 texPart;
 	
 	for(int i=0; i<TOTAL_LIGHTS;i++){
 		if(lightsOUT[i].type == 0 && pointLightOn){
@@ -138,26 +140,28 @@ void main() {
 	else if(texMode == 0){ //color without texture
 		colorOut = max(total_intensity * mat.diffuse + total_spec, mat.ambient);
 	}
-	else if(texMode == 2){ //multitexturing
-		colorOut = max(total_intensity * mat.diffuse + total_spec, mat.ambient) * texel * texel1;
+	else if(texMode == 2){ //particle system (hopefully)
+		texPart = texture(texParticle, DataIn.tex_coord);
+		texPart.a = texPart.r;     //this is a trick because the particle.bmp does not have alpha channel
+		colorOut = mat.diffuse * texPart;
 	}
 	
 	//*************************************************
 	float distance = length(positionForFog);
-	vec3 finalColor = applyFog(colorOut.xyz, distance);	
-	colorOut = vec4(finalColor, 1);
+	vec4 finalColor = applyFog(colorOut, distance);	
+	colorOut = finalColor;
 }
 
 //color - original color of the fragment 
 //distance - camera to point distance
-vec3 applyFog(vec3 color, float distance) 
+vec4 applyFog(vec4 color, float distance) 
 {
 	//float fogAmount = exp(-distance * fogDensity);
 	float fogAmount = 1.0 / exp(distance * fogDensity);
 	fogAmount = clamp(fogAmount, 0.0, 1.0);
-	vec3 finalColor = mix(fogColor, color, fogAmount);
+	vec3 finalColor = mix(fogColor, color.xyz, fogAmount);
 	
-	return finalColor;
+	return vec4(finalColor, color.a);
 }
 
 

@@ -54,8 +54,7 @@
 
 #define SKYBOX 6
 
-#define MAX_PARTICLES 10
-#define PARTICLE 1
+#define MAX_PARTICLES 200
 #define NUM_PACKETS 5
 #define NUM_ORANGES 6
 
@@ -72,7 +71,7 @@ camera* cam = new camera();
 
 VSShaderLib shader;
 
-const int numObjs = NUM_OBJS + NUM_CHEERIOS + NUM_PACKETS + NUM_ORANGES + SKYBOX;
+const int numObjs = NUM_OBJS + NUM_CHEERIOS + NUM_PACKETS + NUM_ORANGES + SKYBOX + MAX_PARTICLES;
 
 struct MyMesh mesh[numObjs];
 int objId = 0; //id of the object mesh - to be used as index of mesh: mesh[objID] means the current mesh
@@ -145,6 +144,7 @@ float directionalLightPos[4] = { 4.0f, 6.0f, 2.0f, 0.0f };//switched from the de
 
 //particle system
 bool fireworks = false;
+int fireworkObjID = 130;
 
 //test variables
 int angle = 0;
@@ -154,9 +154,9 @@ typedef struct {
 	float	life;		// vida
 	float	fade;		// fade
 	float	r, g, b;    // color
-	GLfloat x, y, z;    // posi��o
+	GLfloat x, y, z;    // posicao
 	GLfloat vx, vy, vz; // velocidade 
-	GLfloat ax, ay, az; // acelera��o
+	GLfloat ax, ay, az; // aceleracao
 } Particle;
 
 Particle fireworkSystem[MAX_PARTICLES];
@@ -434,6 +434,7 @@ void activateTextures() {
 
 	glUniform1i(tex_loc, 0+numberFonts);
 	glUniform1i(tex_loc1, 1+numberFonts);
+	glUniform1i(tex_locParticle, 0);
 }
 
 void checkLifes() {
@@ -563,39 +564,27 @@ void renderScene(void) {
 	//translate(MODEL, table->position[0], table->position[1], table->position[2]);
 	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
 	sendMatrices();
-	drawObj(table->objId,2);
-	shader.UnUse();
-
-	drawFonts();
+	drawObj(table->objId,1);
 
 	if (fireworks) {
-		// draw fireworks particles
-		objId++;  //quad for particle
+		// draw fireworks particles //quad for particle
+		objId = fireworkObjID;
 
-
-
-		/*//////////////////////////////
-
-		glUniform1i(tex_loc, 0 + numberFonts);
-		glUniform1i(tex_loc1, 1 + numberFonts);
-		//////////////////////////////////*/
-		//CHANGE THIS TEXTURE ARRAY INDEX
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, TextureArray[0]); //particle.bmp associated to TU0 
-		glDisable(GL_DEPTH_TEST); /* n�o interessa o z-buffer: as part�culas podem ser desenhadas umas por cima das outras sem problemas de ordena��o */
+		glBindTexture(GL_TEXTURE_2D, TextureArray[1]); //loads track 
+													   //glDisable(GL_DEPTH_TEST); /* não interessa o z-buffer: as partículas podem ser desenhadas umas por cima das outras sem problemas de ordenação */
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		
-		glUniform1i(tex_locParticle, 1);
-		glUniform1i(texMode_uniformId, 2); // draw modulated textured particles 
+
+		glDepthMask(GL_FALSE);//depth buffer read only
 
 		for (int i = 0; i < MAX_PARTICLES; i++)
 		{
-			if (fireworkSystem[i].life > 0.0f) /* s� desenha as que ainda est�o vivas */
+
+			if (fireworkSystem[i].life > 0.0f) /* só desenha as que ainda estão vivas */
 			{
 
-				/* A vida da part�cula representa o canal alpha da cor. Como o blend est� activo a cor final � a soma da cor rgb do fragmento multiplicada pelo
+				/* A vida da partícula representa o canal alpha da cor. Como o blend está activo a cor final é a soma da cor rgb do fragmento multiplicada pelo
 				alpha com a cor do pixel destino */
 
 				particle_color[0] = fireworkSystem[i].r;
@@ -611,27 +600,29 @@ void renderScene(void) {
 				translate(MODEL, fireworkSystem[i].x, fireworkSystem[i].y, fireworkSystem[i].z);
 
 				// send matrices to OGL
-				computeDerivedMatrix(PROJ_VIEW_MODEL);
-				glUniformMatrix4fv(vm_uniformId, 1, GL_FALSE, mCompMatrix[VIEW_MODEL]);
-				glUniformMatrix4fv(pvm_uniformId, 1, GL_FALSE, mCompMatrix[PROJ_VIEW_MODEL]);
-				computeNormalMatrix3x3();
-				glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
-
-				glBindVertexArray(mesh[objId].vao);
-				glDrawElements(mesh[objId].type, mesh[objId].numIndexes, GL_UNSIGNED_INT, 0);
+				sendMatrices();
+				drawObj(objId, 2);
 				popMatrix(MODEL);
 			}
 			else dead_num_particles++;
 		}
+
+		glDepthMask(GL_TRUE); //make depth buffer again writeable
+
 		if (dead_num_particles == MAX_PARTICLES) {
-			fireworks = false;
+			fireworks = 0;
 			dead_num_particles = 0;
 			printf("All particles dead\n");
 		}
 
 	}
 
+	drawFonts();
+	shader.UnUse();
+
+	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_BLEND);
 	glutSwapBuffers();
 }
 
@@ -646,9 +637,9 @@ void initParticles(void)
 		phi = frand()*PI;
 		theta = 2.0*frand()*PI;
 
-		fireworkSystem[i].x = 0.0f;
-		fireworkSystem[i].y = 2.0f;
-		fireworkSystem[i].z = 0.0f;
+		fireworkSystem[i].x = car->position[0];
+		fireworkSystem[i].y = 5.0f;
+		fireworkSystem[i].z = car->position[2];
 		fireworkSystem[i].vx = v * cos(theta) * sin(phi);
 		fireworkSystem[i].vy = v * cos(phi);
 		fireworkSystem[i].vz = v * sin(theta) * sin(phi);
@@ -661,7 +652,7 @@ void initParticles(void)
 		fireworkSystem[i].g = 0.552f;
 		fireworkSystem[i].b = 0.211f;
 
-		fireworkSystem[i].life = 1.0f;		/* vida inicial */
+		fireworkSystem[i].life = 0.2f;		/* vida inicial */
 		fireworkSystem[i].fade = 0.005f;	    /* step de decr�scimo da vida para cada itera��o */
 	}
 }
@@ -1046,7 +1037,7 @@ void createLights() {
 
 void createTextures() {
 	glGenTextures(3, TextureArray);
-	TGA_Texture(TextureArray, "..//stone.tga", 0);
+	TGA_Texture(TextureArray, "..//particle.tga", 0);
 	TGA_Texture(TextureArray, "..//course1.tga", 1);
 	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
 	//TGA_Texture(TextureArray, "..//katsbits-rock5//rocks.tga", 3);
@@ -1224,10 +1215,8 @@ void init()
 
 	/**TEXTUREMAPPEDFONT*/
 	font1 = new TextureMappedFont("..//font1.bmp");
-	//BMP_Texture(TextureArray, "particula.bmp", 1); //n�o estamos a usar glbmp para carregar texturas
 
-
-	objId++;
+	fireworkObjID = 100;
 	mesh[objId].mat.texCount = texcount;
 	createQuad(2, 2);
 }
