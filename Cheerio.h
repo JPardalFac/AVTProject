@@ -18,7 +18,9 @@ public:
 	float initValues[4] = { 0.2f, 0.5f, 15, 5 };
 
 	Cheerio();
+	//Cheerio(std::string fileName, int id, float pos[3], float rotAxis[3], float rot);
+	//Cheerio(std::string fileName, int id, float pos[3], float rotAxis[3], float rot, float size[3]);
 	Cheerio(int id, float pos[3], float rotAxis[3], float rot);
-	Cheerio(int id, float pos[3], float rotAxis[3], float rot, float size[3]);
+	Cheerio( int id, float pos[3], float rotAxis[3], float rot, float size[3]);
 	void collided();
 };
