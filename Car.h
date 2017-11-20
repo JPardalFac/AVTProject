@@ -13,7 +13,6 @@ private:
 	float xWheelpos[4] = { 0.5f ,0.5f ,-0.5f,-0.5f };
 	float yWheelpos[4] = { 0.5f ,-0.5f ,0.5f,-0.5f };
 	float speed = 0.1;
-	float initialPos[3];
 	std::string meshName;
 	
 	bool canMoveForward = true;

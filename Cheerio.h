@@ -23,6 +23,8 @@ public:
 	//Cheerio(std::string fileName, int id, float pos[3], float rotAxis[3], float rot, float size[3]);
 	Cheerio(int id, float pos[3], float rotAxis[3], float rot);
 	Cheerio( int id, float pos[3], float rotAxis[3], float rot, float size[3]);
-	void collided();
+	//void collided();
+	//Cheerio(int id, float pos[3], float rotAxis[3], float rot, float size[3]);
 	void collided(float carPos[3]);
+	void movementUpdate();
 };

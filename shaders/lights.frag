@@ -134,6 +134,7 @@ void main() {
 
 		texel = texture(texmap, DataIn.tex_coord); 
 		texel1 = texture(texmap1, DataIn.tex_coord); 
+		texel2 = texture(texmap2,DataIn.tex_coord);
 	}
 	
 	// Calculates the color from the values obtained from all the lights
@@ -159,7 +160,7 @@ void main() {
 	}
 	
 	
-	else if(texMode == 2){ //particle system (hopefully)
+	else if(texMode == 4){ //particle system (hopefully)
 		texPart = texture(texParticle, DataIn.tex_coord);
 		texPart.a = texPart.r;     //this is a trick because the particle.bmp does not have alpha channel
 		colorOut = mat.diffuse * texPart;

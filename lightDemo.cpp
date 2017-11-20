@@ -146,6 +146,9 @@ float directionalLightPos[4] = { 4.0f, 6.0f, 2.0f, 0.0f };//switched from the de
 
 //Billboard
 int type = 0, billboardObjId, bubbleId;
+const int numTrees = 5;
+float TposX[numTrees];
+float TposY[numTrees];
 
 //bubbles
 const int numBubbles = 5;
@@ -493,13 +496,12 @@ void drawBillboards() {
 	float cam[3] = {camX,camY,camZ};
 	glUniform1i(texMode_uniformId, 3); // draw textured quads
 
-	for (int i = -5; i < 0; i++) {
-		for (int j = -5; j < 0; j++) {
+	for (int i = 0; i < numTrees; i++) {
 			pushMatrix(MODEL);
 			//translate(MODEL, 5 + i*10.0, 0, 5 + j * 10.0);
-			translate(MODEL, 5 + i * 2, 5 + j * 5, 3);
+			translate(MODEL, TposX[i] ,0 ,TposY[i]);//5 + i * 2, 5 + j * 5, 3);
 
-			pos[0] = 5 + i*10.0; pos[1] = 0; pos[2] = 5 + j * 10.0;
+			pos[0] = 5 + i*10.0; pos[1] = 0; pos[2] = 5 + i * 10.0;
 
 			if (type == 2)
 				l3dBillboardSphericalBegin(cam, pos);
@@ -539,7 +541,7 @@ void drawBillboards() {
 			popMatrix(MODEL);
 
 			popMatrix(MODEL);
-		}
+		
 	}
 }
 
@@ -618,53 +620,53 @@ void renderScene(void) {
 
 	//////////////////////////////////////////////////////////////////////////BEGIN STENCIL MASK
 
-	cam->orthoBox[0] = -30;
-	cam->orthoBox[1] = 30;
-	cam->orthoBox[2] = -30;
-	cam->orthoBox[3] = 30;
-	cam->orthoBox[4] = -100;
-	cam->orthoBox[5] = 100;
-	cam->setFixedOrtho();
-
-	// load identity matrices for Model-View
-	loadIdentity(VIEW);
-	loadIdentity(MODEL);
-	shader.Use();
-
-	objId = 1;  //cube
-				//rotate(MODEL, 45.0f, 0.0, 0.0, 1.0);
-	scale(MODEL, 10.0, 10.0, 10.0);
-	//translate(MODEL, -0.5f, -0.5f, -0.5f);
-
-	// send matrices to OGL
-	computeDerivedMatrix(PROJ_VIEW_MODEL);
-	glUniformMatrix4fv(vm_uniformId, 1, GL_FALSE, mCompMatrix[VIEW_MODEL]);
-	glUniformMatrix4fv(pvm_uniformId, 1, GL_FALSE, mCompMatrix[PROJ_VIEW_MODEL]);
-	computeNormalMatrix3x3();
-	glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
-
-	glClear(GL_STENCIL_BUFFER_BIT);
-	glStencilFunc(GL_NEVER, 0x1, 0x1);
-	glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
-
-
-	glBindVertexArray(mesh[objId].vao);
-	glDrawElements(mesh[objId].type, mesh[objId].numIndexes, GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
-	shader.UnUse();
 	//cam->orthoBox[0] = -30;
 	//cam->orthoBox[1] = 30;
 	//cam->orthoBox[2] = -30;
 	//cam->orthoBox[3] = 30;
-	//cam->orthoBox[4] = -5;
-	//cam->orthoBox[5] = 20;
+	//cam->orthoBox[4] = -100;
+	//cam->orthoBox[5] = 100;
 	//cam->setFixedOrtho();
-	//setActiveCam();
-	loadIdentity(PROJECTION);
-	cam->updateProjection(pratio);
 
-	glStencilFunc(GL_NOTEQUAL, 0x1, 0x1);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+	//// load identity matrices for Model-View
+	//loadIdentity(VIEW);
+	//loadIdentity(MODEL);
+	//shader.Use();
+
+	//objId = 1;  //cube
+	//			//rotate(MODEL, 45.0f, 0.0, 0.0, 1.0);
+	//scale(MODEL, 10.0, 10.0, 10.0);
+	////translate(MODEL, -0.5f, -0.5f, -0.5f);
+
+	//// send matrices to OGL
+	//computeDerivedMatrix(PROJ_VIEW_MODEL);
+	//glUniformMatrix4fv(vm_uniformId, 1, GL_FALSE, mCompMatrix[VIEW_MODEL]);
+	//glUniformMatrix4fv(pvm_uniformId, 1, GL_FALSE, mCompMatrix[PROJ_VIEW_MODEL]);
+	//computeNormalMatrix3x3();
+	//glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
+
+	//glClear(GL_STENCIL_BUFFER_BIT);
+	//glStencilFunc(GL_NEVER, 0x1, 0x1);
+	//glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
+
+
+	//glBindVertexArray(mesh[objId].vao);
+	//glDrawElements(mesh[objId].type, mesh[objId].numIndexes, GL_UNSIGNED_INT, 0);
+	//glBindVertexArray(0);
+	//shader.UnUse();
+	////cam->orthoBox[0] = -30;
+	////cam->orthoBox[1] = 30;
+	////cam->orthoBox[2] = -30;
+	////cam->orthoBox[3] = 30;
+	////cam->orthoBox[4] = -5;
+	////cam->orthoBox[5] = 20;
+	////cam->setFixedOrtho();
+	////setActiveCam();
+	//loadIdentity(PROJECTION);
+	//cam->updateProjection(pratio);
+
+	//glStencilFunc(GL_NOTEQUAL, 0x1, 0x1);
+	//glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	///////////////////////////////////////////////////////////////////////////END STENCIL MASK
 	
 
@@ -722,7 +724,6 @@ void renderScene(void) {
 		popMatrix(MODEL);
 	}
 	popMatrix(MODEL);
-	////draw trackLimiter
 
 	//draw trackLimiter
 	for (int i = 0; i < trackLimit.size(); i++) {
@@ -735,6 +736,15 @@ void renderScene(void) {
 		popMatrix(MODEL);
 	}
 	
+	//////draw table
+	pushMatrix(MODEL); 
+	sendMaterial(table->objId);
+	rotate(MODEL, table->rotation, table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
+	sendMatrices();
+	drawObj(table->objId, 2);
+	popMatrix(MODEL);
+
+
 	//draw skybox
 	for (int i = 0; i < skybox.size(); i++) {
 		pushMatrix(MODEL);
@@ -749,9 +759,6 @@ void renderScene(void) {
 	}
 
 
-
-	//////draw table
-	pushMatrix(MODEL); //before car
 
 	//draw obstacles
 	for (int i = 0; i < obstacles.size(); i++) {
@@ -778,20 +785,10 @@ void renderScene(void) {
 		drawObj(oranges[i].objId, 0);
 		popMatrix(MODEL);
 	}
-	
-	//draw table
-	//popMatrix(MODEL);
-	sendMaterial(table->objId);
-	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
-	sendMatrices();
-	drawObj(table->objId,2);
-	popMatrix(MODEL); //before car
 
-	//drawBillboards();
-	//drawBubbles();
+	drawBillboards();
+	drawBubbles();
 	
-	shader.UnUse();
-	drawObj(table->objId,1);
 
 	if (fireworks) {
 		// draw fireworks particles //quad for particle
@@ -828,7 +825,7 @@ void renderScene(void) {
 
 				// send matrices to OGL
 				sendMatrices();
-				drawObj(objId, 2);
+				drawObj(objId, 4);
 				popMatrix(MODEL);
 			}
 			else dead_num_particles++;
@@ -844,8 +841,8 @@ void renderScene(void) {
 
 	}
 
-	drawFonts();
 	shader.UnUse();
+	drawFonts();
 
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -1131,13 +1128,9 @@ GLuint setupShaders() {
 }
 
 void createCar() {
-	car = new Car();
-	car->init(2, new float[3]{ .5f, 0.7f, -.5f }, new float[3]{ 0,1,0 }, 0);
-
-void createCar2() {
 	
 	car = new Car();
-	car->init(0, car->initialPos, car->RotAxis, car->initialRot);
+	car->init(2, car->initialPos, car->RotAxis, car->initialRot);
 	//car.setColor(mesh);
 	objId = car->objId;
 	memcpy(mesh[car->objId].mat.ambient, car->amb, 4 * sizeof(float));
@@ -1288,17 +1281,17 @@ void createBillboards() {
 	mesh[objId].mat.shininess = shininess;
 	mesh[objId].mat.texCount = texcount;
 	createQuad(6, 6);
-
-	for (int i = 0; i < numBubbles; i++) {
-		posX[i] = rand() % 40 - 20;
-		posY[i] = rand() % 40 - 20;
+	for (int i = 0; i < numTrees; i++) {
+		TposX[i] = rand() % 40 - 20;
+		TposY[i] = rand() % 40 - 20;
 	}
+
 	
 }
 
 void createTextures() {
-	glGenTextures(3, TextureArray);
-	TGA_Texture(TextureArray, "..//tree.tga", 0);
+	glGenTextures(4, TextureArray);
+	TGA_Texture(TextureArray, "..//tree.tga", 3);
 	TGA_Texture(TextureArray, "..//particle.tga", 0);
 	TGA_Texture(TextureArray, "..//course1.tga", 1);
 	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
@@ -1461,7 +1454,10 @@ void createBubbles() {
 	mesh[objId].mat.shininess = Trans_shininess;
 	mesh[objId].mat.texCount = 0;
 	createSphere(2,10);
-
+	for (int i = 0; i < numBubbles; i++) {
+		posX[i] = rand() % 40 - 20;
+		posY[i] = rand() % 40 - 20;
+	}
 }
 
 
@@ -1488,12 +1484,12 @@ void init()
 	createLights();
 	createBillboards();
 	createBubbles();
-	objId = 1;
-	createCube();
 	createSkybox();
 	createObstacles();
 	createOranges();
 
+	objId = 1;
+	createCube();
 
 	//std::cout << "init " << std::endl;
 	// some GL settings
