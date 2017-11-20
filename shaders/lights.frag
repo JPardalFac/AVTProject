@@ -10,6 +10,9 @@
 uniform sampler2D texmap;
 uniform sampler2D texmap1;
 uniform sampler2D texParticle;
+uniform sampler2D texKitchenSampler;
+uniform sampler2D texFloorSampler;
+
 uniform int texMode;
 
 in vec4 positionForFog;
@@ -50,7 +53,7 @@ in Data {
  
  
 const vec3 fogColor = vec3 (0.5, 0.5, 0.5);
-const float fogDensity = 0.05;
+const float fogDensity = 0.03;
 
 vec4 applyFog(vec4 color, float distance);	//prototype
 
@@ -115,6 +118,8 @@ void main() {
 	vec4 texel;
 	vec4 texel1;
 	vec4 texPart;
+	vec4 texKitchen;
+	vec4 texFloor;
 	
 	for(int i=0; i<TOTAL_LIGHTS;i++){
 		if(lightsOUT[i].type == 0 && pointLightOn){
@@ -145,7 +150,14 @@ void main() {
 		texPart.a = texPart.r;     //this is a trick because the particle.bmp does not have alpha channel
 		colorOut = mat.diffuse * texPart;
 	}
-	
+	else if(texMode == 5){//skybox walls
+		texKitchen = texture(texKitchenSampler, DataIn.tex_coord);
+		colorOut = max(total_intensity * mat.diffuse * texKitchen + total_spec,mat.ambient * texKitchen);
+	}
+	else if(texMode == 6){//skybox floor
+		texFloor = texture(texFloorSampler, DataIn.tex_coord);
+		colorOut = max(total_intensity * mat.diffuse * texFloor + total_spec,mat.ambient * texFloor);
+	}
 	//*************************************************
 	float distance = length(positionForFog);
 	vec4 finalColor = applyFog(colorOut, distance);	

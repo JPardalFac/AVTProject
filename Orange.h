@@ -6,11 +6,11 @@ class Orange : public Object{
 private:
 	
 public:
-	float amb[4] = { 0.2f, 0.15f, 0.1f, 1.0f };
-	float diff[4] = { 0.8f, 0.6f, 0.4f, 1.0f };
-	float spec[4] = { 0.8f, 0.8f, 0.8f, 1.0f };
+	float amb[4] = { 0.19125f, 0.0735f, 0.0225f, 1.0f };
+	float diff[4] = { 0.7038f, 0.27048f, 0.0828f, 1.0f };
+	float spec[4] = { 0.256777f, 0.137622f, 0.086014f, 1.0f };
 	float emissive[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	float shininess = 100;
+	float shininess = 12.8f;
 	int texcount = 0;
 	float currentRot = 1.0f;
 	float movementRotAxis[3] = { 0.0f,0.0f,1.0f };

@@ -71,7 +71,7 @@ camera* cam = new camera();
 
 VSShaderLib shader;
 
-const int numObjs = NUM_OBJS + NUM_CHEERIOS + NUM_PACKETS + NUM_ORANGES + SKYBOX + MAX_PARTICLES;
+const int numObjs = NUM_OBJS + NUM_CHEERIOS + NUM_PACKETS + NUM_ORANGES + SKYBOX + MAX_PARTICLES * 2;
 
 struct MyMesh mesh[numObjs];
 int objId = 0; //id of the object mesh - to be used as index of mesh: mesh[objID] means the current mesh
@@ -107,8 +107,9 @@ GLint spotOn_uniformId;
 GLint directionalLightOn_uniformId;
 GLint pointLightOn_uniformId;
 
-GLint tex_loc, tex_loc1, tex_loc2, tex_locParticle, texMode_uniformId;
-GLuint TextureArray[4];
+GLint tex_loc, tex_loc1, tex_loc2, tex_locParticle, tex_locKitchen, tex_locFloor, texMode_uniformId;
+const int numberOfTextures = 5;
+GLuint TextureArray[numberOfTextures];
 
 // Font variables
 /**TEXTUREMAPPEDFONT*/
@@ -160,6 +161,7 @@ typedef struct {
 } Particle;
 
 Particle fireworkSystem[MAX_PARTICLES];
+Particle explosion[MAX_PARTICLES];
 int dead_num_particles = 0;
 
 // ------------------------------------------------------------
@@ -315,7 +317,9 @@ void checkHeadlights() {
 	}
 }
 
-void checkLifes();	//prototype
+//prototypes
+void checkLifes();	
+void triggerExplosionParticles(); 
 
 void checkCollisions() 
 {
@@ -323,6 +327,7 @@ void checkCollisions()
 
 	//check collision with table, if the car goes off the table, the player loses a life and respawns in the initial pos
 	if (!car->checkCollision(*car, *table) && numberLifes > 0){
+		triggerExplosionParticles();
 		numberLifes--;
 		checkLifes();
 	}
@@ -351,6 +356,7 @@ void checkCollisions()
 	{
 		if (car->checkCollision(*car, oranges[i])) {
 			oranges[i].collided();
+			triggerExplosionParticles();
 			numberLifes--;
 			checkLifes();
 			car->respawn();
@@ -432,9 +438,15 @@ void activateTextures() {
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, TextureArray[4]);
 
+
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D, TextureArray[5]);
+
 	glUniform1i(tex_loc, 0+numberFonts);
 	glUniform1i(tex_loc1, 1+numberFonts);
 	glUniform1i(tex_locParticle, 0);
+	glUniform1i(tex_locKitchen, 2 + numberFonts);
+	glUniform1i(tex_locFloor, 3 + numberFonts);
 }
 
 void checkLifes() {
@@ -521,14 +533,19 @@ void renderScene(void) {
 	
 	//draw skybox
 	for (int i = 0; i < skybox.size(); i++) {
+		//glBindTexture(GL_TEXTURE_2D, TextureArray[1]);
 		pushMatrix(MODEL);
 		sendMaterial(skybox[i].objId);
 		translate(MODEL, skybox[i].position[0], skybox[i].position[1], skybox[i].position[2]);
-		//rotate(MODEL, w->currentRot, w->movementRotAxis[0], w->movementRotAxis[1], w->movementRotAxis[2]);
-		//rotate(MODEL, skybox[i].rotation, skybox[i].rotationAxis[0], skybox[i].rotationAxis[1], skybox[i].rotationAxis[2]);
 		rotate(MODEL, skybox[i].rotation, skybox[i].rotationAxis[0], skybox[i].rotationAxis[1], skybox[i].rotationAxis[2]);
 		sendMatrices();
-		drawObj(skybox[i].objId, 0);
+		if (i == 4) { //floor is not supposed to have kitchen texture
+			rotate(MODEL, 180, 1, 0, 0);
+			sendMatrices();
+			drawObj(skybox[i].objId, 6);
+		}
+		else
+			drawObj(skybox[i].objId, 5);
 		popMatrix(MODEL);
 	}
 
@@ -559,9 +576,7 @@ void renderScene(void) {
 	}
 	
 	//draw table
-	//popMatrix(MODEL);
 	sendMaterial(table->objId);
-	//translate(MODEL, table->position[0], table->position[1], table->position[2]);
 	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
 	sendMatrices();
 	drawObj(table->objId,1);
@@ -626,7 +641,7 @@ void renderScene(void) {
 	glutSwapBuffers();
 }
 
-void initParticles(void)
+void initSmokeParticles(void)
 {
 	GLfloat v, theta, phi;
 	int i;
@@ -638,13 +653,13 @@ void initParticles(void)
 		theta = 2.0*frand()*PI;
 
 		fireworkSystem[i].x = car->position[0];
-		fireworkSystem[i].y = 5.0f;
-		fireworkSystem[i].z = car->position[2];
-		fireworkSystem[i].vx = v * cos(theta) * sin(phi);
+		fireworkSystem[i].z = 0.5f;
+		fireworkSystem[i].y = - car->position[2];
+		fireworkSystem[i].vx = v * cos(theta);// *sin(phi);
 		fireworkSystem[i].vy = v * cos(phi);
 		fireworkSystem[i].vz = v * sin(theta) * sin(phi);
-		fireworkSystem[i].ax = 0.1f; /* simular um pouco de vento */
-		fireworkSystem[i].ay = -0.15f; /* simular a acelera��o da gravidade */
+		fireworkSystem[i].ax = 0.05f; /* simular um pouco de vento */
+		fireworkSystem[i].ay = -0.05f; /* simular a acelera��o da gravidade */
 		fireworkSystem[i].az = 0.0f;
 
 		/* tom amarelado que vai ser multiplicado pela textura que varia entre branco e preto */
@@ -652,11 +667,58 @@ void initParticles(void)
 		fireworkSystem[i].g = 0.552f;
 		fireworkSystem[i].b = 0.211f;
 
-		fireworkSystem[i].life = 0.2f;		/* vida inicial */
-		fireworkSystem[i].fade = 0.005f;	    /* step de decr�scimo da vida para cada itera��o */
+		fireworkSystem[i].life = 0.2f;		 /* vida inicial */
+		fireworkSystem[i].fade = 0.005f;	 /* step de decr�scimo da vida para cada itera��o */
 	}
 }
 
+void initExplosionParticles()
+{
+	GLfloat v, theta, phi;
+	int i;
+
+	for (i = 0; i<MAX_PARTICLES; i++)
+	{
+		v = 0.8*frand() + 0.2;
+		phi = frand()*PI;
+		theta = 2.0*frand()*PI;
+
+		//falta inicializar alguma coisa para explosions???<
+		explosion[i].x = car->position[0];
+		explosion[i].z = 0.5f;
+		explosion[i].y = -car->position[2];
+		explosion[i].vx = v * cos(theta);// *sin(phi);
+		explosion[i].vy = v * sin(theta);
+		explosion[i].vz = v * sin(theta) * sin(phi);
+		explosion[i].ax = 0.15f; /* simular um pouco de vento */
+		explosion[i].ay = -0.15f; /* simular a acelera��o da gravidade */
+		explosion[i].az = 0.2f;
+
+		/* tom amarelado que vai ser multiplicado pela textura que varia entre branco e preto */
+		explosion[i].r = 0.882f;
+		explosion[i].g = 0.552f;
+		explosion[i].b = 0.211f;
+
+		explosion[i].life = 0.2f;		 /* vida inicial */
+		explosion[i].fade = 0.005f;	 /* step de decr�scimo da vida para cada itera��o */
+	}
+
+
+}
+
+void triggerSmokeParticles() 
+{
+	fireworks = true;
+	initSmokeParticles();
+	glutTimerFunc(0, iterate, 0);  //timer for particle system
+}
+
+void triggerExplosionParticles()
+{
+	fireworks = true;
+	initExplosionParticles();
+	glutTimerFunc(0, iterate, 0);  //timer for particle system
+}
 // ------------------------------------------------------------
 //
 // Events from the Keyboard
@@ -688,10 +750,12 @@ void processKeys(unsigned char key, int xx, int yy)
 	case 'o': 
 		rot_left = true; 
 		rot_right = false; 
+		triggerSmokeParticles();
 		break;
 	case 'p': 
 		rot_left = false; 
-		rot_right = true; 
+		rot_right = true;
+		triggerSmokeParticles();
 		break;
 	case 'h':
 		if (canChangeSpot && !pause) {
@@ -733,9 +797,7 @@ void processKeys(unsigned char key, int xx, int yy)
 		}
 		break;
 	case 'e':
-		fireworks = true;
-		initParticles();
-		glutTimerFunc(0, iterate, 0);  //timer for particle system
+		triggerSmokeParticles();
 		break;
 	}
 
@@ -892,6 +954,8 @@ GLuint setupShaders() {
 	tex_loc = glGetUniformLocation(shader.getProgramIndex(), "texmap");
 	tex_loc1 = glGetUniformLocation(shader.getProgramIndex(), "texmap1");
 	tex_locParticle = glGetUniformLocation(shader.getProgramIndex(), "texParticle");
+	tex_locKitchen = glGetUniformLocation(shader.getProgramIndex(), "texKitchenSampler");
+	tex_locFloor = glGetUniformLocation(shader.getProgramIndex(), "texFloorSampler");
 	texMode_uniformId = glGetUniformLocation(shader.getProgramIndex(), "texMode"); // different modes of texturing
 
 	printf("InfoLog for Hello World Shader\n%s\n\n", shader.getAllInfoLogs().c_str());
@@ -1036,10 +1100,12 @@ void createLights() {
 }
 
 void createTextures() {
-	glGenTextures(3, TextureArray);
+	glGenTextures(numberOfTextures, TextureArray);
 	TGA_Texture(TextureArray, "..//particle.tga", 0);
 	TGA_Texture(TextureArray, "..//course1.tga", 1);
 	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
+	TGA_Texture(TextureArray, "..//kitchen.tga", 3);
+	TGA_Texture(TextureArray, "..//floor.tga", 4);
 	//TGA_Texture(TextureArray, "..//katsbits-rock5//rocks.tga", 3);
 }
 
@@ -1171,11 +1237,17 @@ void createSkybox() {
 
 		skybox[index] = Cheerio(objId, pos, rotAxis, rot);
 
-		memcpy(mesh[skybox[index].objId].mat.ambient, car[0].amb, 4 * sizeof(float));
-		memcpy(mesh[skybox[index].objId].mat.diffuse, car[0].diff, 4 * sizeof(float));
-		memcpy(mesh[skybox[index].objId].mat.specular, trackLimit[0].spec, 4 * sizeof(float));
-		memcpy(mesh[skybox[index].objId].mat.emissive, trackLimit[0].emissive, 4 * sizeof(float));
-		mesh[skybox[index].objId].mat.shininess = trackLimit[0].shininess;
+
+		float amb[4] = { .7f, .7f, .7f, 1 };
+		float diff[4] = { .7f, .7f, .7f, 1 };
+		float spec[4] = { .7f, .7f, .7f, 1 };
+		float emissive[4] = { .7f, .7f, .7f, 1 };
+
+		memcpy(mesh[skybox[index].objId].mat.ambient, amb, 4 * sizeof(float));
+		memcpy(mesh[skybox[index].objId].mat.diffuse, diff, 4 * sizeof(float));
+		memcpy(mesh[skybox[index].objId].mat.specular, spec, 4 * sizeof(float));
+		memcpy(mesh[skybox[index].objId].mat.emissive, emissive, 4 * sizeof(float));
+		mesh[skybox[index].objId].mat.shininess = 0;
 		mesh[skybox[index].objId].mat.texCount = trackLimit[0].texcount;
 
 		createQuad(table->x * 3 , table->y * 3);
