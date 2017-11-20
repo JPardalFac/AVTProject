@@ -273,33 +273,43 @@ void changeSize(int w, int h) {
 	////}
 	//cam->setFixedOrtho();
 
-	//// load identity matrices for Model-View
-	//loadIdentity(VIEW);
-	//loadIdentity(MODEL);
-	//shader.Use();
 
-	//objId = 1;  //cube
-	////rotate(MODEL, 45.0f, 0.0, 0.0, 1.0);
-	//scale(MODEL, 10.0, 10.0, 10.0);
-	////translate(MODEL, -0.5f, -0.5f, -0.5f);
-
-	//// send matrices to OGL
-	//computeDerivedMatrix(PROJ_VIEW_MODEL);
-	//glUniformMatrix4fv(vm_uniformId, 1, GL_FALSE, mCompMatrix[VIEW_MODEL]);
-	//glUniformMatrix4fv(pvm_uniformId, 1, GL_FALSE, mCompMatrix[PROJ_VIEW_MODEL]);
-	//computeNormalMatrix3x3();
-	//glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
-
-	//glClear(GL_STENCIL_BUFFER_BIT);
-
-	//glStencilFunc(GL_NEVER, 0x1, 0x1);
-	//glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
+	cam->orthoBox[0] = -30;
+	cam->orthoBox[1] = 30;
+	cam->orthoBox[2] = -30;
+	cam->orthoBox[3] = 30;
+	cam->orthoBox[4] = -100;
+	cam->orthoBox[5] = 100;
+	cam->setFixedOrtho();
 
 
-	//glBindVertexArray(mesh[objId].vao);
-	//glDrawElements(mesh[objId].type, mesh[objId].numIndexes, GL_UNSIGNED_INT, 0);
-	//glBindVertexArray(0);
-	//shader.UnUse();
+	// load identity matrices for Model-View
+	loadIdentity(VIEW);
+	loadIdentity(MODEL);
+	shader.Use();
+
+	objId = 1;  //cube
+	//rotate(MODEL, 45.0f, 0.0, 0.0, 1.0);
+	scale(MODEL, 10.0, 10.0, 10.0);
+	//translate(MODEL, -0.5f, -0.5f, -0.5f);
+
+	// send matrices to OGL
+	computeDerivedMatrix(PROJ_VIEW_MODEL);
+	glUniformMatrix4fv(vm_uniformId, 1, GL_FALSE, mCompMatrix[VIEW_MODEL]);
+	glUniformMatrix4fv(pvm_uniformId, 1, GL_FALSE, mCompMatrix[PROJ_VIEW_MODEL]);
+	computeNormalMatrix3x3();
+	glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
+
+	glClear(GL_STENCIL_BUFFER_BIT);
+
+	glStencilFunc(GL_NEVER, 0x1, 0x1);
+	glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
+
+
+	glBindVertexArray(mesh[objId].vao);
+	glDrawElements(mesh[objId].type, mesh[objId].numIndexes, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+	shader.UnUse();
 	/////////////////////////////////////////////////////////////////END STENCIL MASK
 
 	// set the projection matrix
@@ -665,8 +675,12 @@ void renderScene(void) {
 	//loadIdentity(PROJECTION);
 	//cam->updateProjection(pratio);
 
-	//glStencilFunc(GL_NOTEQUAL, 0x1, 0x1);
-	//glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+
+
+
+	glStencilFunc(GL_NOTEQUAL, 0x1, 0x1);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	///////////////////////////////////////////////////////////////////////////END STENCIL MASK
 	
 
@@ -1521,7 +1535,7 @@ int main(int argc, char **argv) {
 
 	//  GLUT initialization
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_STENCIL | GL_BLEND | GLUT_RGBA | GLUT_MULTISAMPLE);
+	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_STENCIL  | GLUT_RGBA | GLUT_MULTISAMPLE);
 
 	glutInitContextVersion(3, 3);
 	glutInitContextProfile(GLUT_CORE_PROFILE);
