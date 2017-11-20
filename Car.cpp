@@ -13,13 +13,16 @@ void Car::init(int id,float pos[3], float rotAxis[3], float rot)
 		wheels[i]->init(wheelId,wpos,wheelRotAxis,90);
 	}
 	for (int i = 0; i < 2; i++) {
-		float pos[4] = {0.f+i,.5f,0,1};//{0+i,0.5,0,1};
-		float dir[4] = { 0.f,1,0,0 };
+		//float pos[4] = { yWheelpos[i], 0.5f, xWheelpos[i], 1.0f};//{0+i,0.5,0,1};
+		
+		float lpos[4] = { pos[0] + yWheelpos[i], 0.5f, pos[2] + xWheelpos[i], 1.0f };
+		float dir[4] = { cos((rot* PI / 180.0) + (PI / 2.f)), 0.0f,  -sin((rot* PI / 180.0) + (PI / 2.f)), 0.0f };
 		headlights[i] = new LightSource();
-		headlights[i]->setSpot(pos,dir, 120);
+		headlights[i]->setSpot(lpos,dir, 170);
 	}
 	//store initPos to use when car respawns
-	setInitialPos(pos);
+	//setInitialPos(pos);
+	setInitialPos(initialPos);
 }
 
 void Car::init(int id, float pos[3], float rotAxis[3], float rot, float size[3])
@@ -37,24 +40,31 @@ void Car::move(int  dir) {
 	speed = .3f;
 	switch (dir) {
 	case back:
-		dy = (float)(cos(rotation * PI / 180.0) * speed);
-		dx = (float)(sin(rotation* PI / 180.0) * speed);
-		position[0] -= dx;
-		position[2] -= dy;
+		//if(canMoveBackward){
+			dy = (float)(cos(rotation * PI / 180.0) * speed);
+			dx = (float)(sin(rotation* PI / 180.0) * speed);
+			position[0] -= dx;
+			position[2] -= dy;
+		//}
 		break;
 	case forward:
-		dy = (float)(cos(rotation * PI / 180.0) * speed);
-		dx = (float)(sin(rotation* PI / 180.0) * speed);
-		position[0] += dx;
-		position[2] += dy;
+		//if(canMoveForward){
+			dy = (float)(cos(rotation * PI / 180.0) * speed);
+			dx = (float)(sin(rotation* PI / 180.0) * speed);
+			position[0] += dx;
+			position[2] += dy;
+		//}
 		break;
 	}
 	for (int i = 0; i < 4; i++) {
 		wheels[i]->rotate(dir);
 	}
-	for (int i = 0; i < 2; i++) {
-		headlights[i]->move(dir,dx,dy);
-	}
+	//if(canMoveBackward && canMoveForward){
+		for (int i = 0; i < 2; i++) {
+			headlights[i]->move(dir,dx,dy);
+
+		}
+	//}
 }
 
 void Car::rotate(int dir) {
@@ -77,20 +87,18 @@ void Car::rotate(int dir) {
 	}
 }
 
-void Car::collided()
+void Car::collided(Object collidedWith)
 {
-	//if(rotation <= 180){
-	if (collisionPenetration3[0] > 0)
+	isColliding = true;
+	//check direction of collision and move the car accordingly
+	if (collidedWith.position[0] <= position[0]){
 		move(forward);
-	else
+		//canMoveBackward = false;
+	}
+	else {
 		move(back);
-	//}
-	/*else
-		move(forward);
-	/*position[0] -= collisionPenetration3[0];
-	position[2] -= collisionPenetration3[2];*/
-	collisionPenetration3[0] = 0;
-	collisionPenetration3[2] = 0;
+		//canMoveForward = false;
+	}
 }
 
 //store initPos to use when car respawns
@@ -116,6 +124,23 @@ void Car::moveToPos(float posToMoveTo[3])
 void Car::respawn()
 {
 	moveToPos(initialPos);
+	resetRotation();
+}
+
+void Car::resetRotation() 
+{
+	rotation = initialRot;
+	for (int i = 0; i < 2; i++)
+	{
+		headlights[i]->resetRotation();
+	}
+}
+
+void Car::resetCollisionFlag()
+{
+	isColliding = false;
+	canMoveBackward = true;
+	canMoveForward = true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------//

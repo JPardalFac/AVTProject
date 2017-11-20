@@ -16,6 +16,9 @@ public:
 	ObjectFromLoad* obj;
 	//std::string meshesNames[30];
 	std::vector<std::string> meshesNames;
+
+	float velocity[3];
+	
 	//collision variables
 	float size3[3] = {1, 1, 1}; //used for collision detection. This assumes CUBE COLLIDER
 	float collisionPenetration3[3] = { 0, 0, 0 };

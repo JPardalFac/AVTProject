@@ -73,6 +73,10 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\stencil.cpp">
+    <ClCompile Include="..\ButterPacket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Orange.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -135,6 +139,10 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Materials.h">
+    <ClInclude Include="..\ButterPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Orange.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

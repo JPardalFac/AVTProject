@@ -4,6 +4,7 @@
 
 class Cheerio : public Object 
 {
+	float velocityModifier = 0.1;
 	//float size3[3] = {0.5, 0.5, 0.5}; //size is used for scaling and collision detection, CUBE COLLIDER
 public:
 	//materials
@@ -23,4 +24,5 @@ public:
 	Cheerio(int id, float pos[3], float rotAxis[3], float rot);
 	Cheerio( int id, float pos[3], float rotAxis[3], float rot, float size[3]);
 	void collided();
+	void collided(float carPos[3]);
 };
