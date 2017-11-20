@@ -1,5 +1,6 @@
 #include "Car.h"
 #include "math.h"
+#include "Materials.h"
 
 void Car::init(int id,float pos[3], float rotAxis[3], float rot)
 {
@@ -141,3 +142,60 @@ void Car::resetCollisionFlag()
 	canMoveBackward = true;
 	canMoveForward = true;
 }
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+//#include "Car.h"
+//#include "math.h"
+//
+void Car::init(std::string fileName, int id, float pos[3], float rotAxis[3], float rot)
+{
+	Object::init(fileName,id, pos, rotAxis, rot);
+	int wheelId = objId + 1;
+	float wheelRotAxis[3] = { 0.0f,0.0f,0.1f };
+
+	for (int i = 0, w = 0; i < meshesNames.size(); i++, wheelId++) {
+
+		std::string mName = meshesNames[i];
+		if (mName.substr(0, mName.find(".")) == "wheel") {
+			float wpos[3] = { xWheelpos[w], -0.5f, yWheelpos[w] };
+			wheels[w] = new Wheel();
+			wheels[w]->init(wheelId, wpos, wheelRotAxis, 90);
+			setMaterial(i, Wheel_amb, Wheel_diff, Wheel_spec, Wheel_emissive, Wheel_shininess, Wheel_texcount);
+			w++;
+		}
+		else if (mName.substr(0, mName.find(".")) == "glass") {
+			setMaterial(i, glass_amb, glass_diff, glass_spec, glass_emissive, glass_shininess, glass_texcount);
+		}
+		else if (mName.substr(0, mName.find(".")) == "detail") {
+			setMaterial(i, detail_amb, detail_diff, detail_spec, detail_emissive, detail_shininess, detail_texcount);
+		}
+		else if (mName.substr(0, mName.find(".")) == "interior") {
+			setMaterial(i, int_amb, int_diff, int_spec, int_emissive, int_shininess, int_texcount);
+		}
+		else {
+			setMaterial(i, Car_amb, Car_diff, Car_spec, Car_emissive, Car_shininess, Car_texcount);
+		}
+	}
+
+	for (int j = 0; j < 2; j++) {
+		float pos[4] = { 0.f + j,.5f,0,1 };//{0+i,0.5,0,1};
+		float dir[4] = { 0.f,1,0,0 };
+		headlights[j] = new LightSource();
+		headlights[j]->setSpot(pos, dir, 120);
+	}
+
+	//store initPos to use when car respawns
+	setInitialPos(pos);
+	
+}
+
+void Car::init(std::string fileName, int id, float pos[3], float rotAxis[3], float rot, float size[3])
+{
+	Car::init(fileName,id, pos, rotAxis, rot);
+	for (int i = 0; i < 3; i++)
+		size3[i] = size[i];
+
+	//store initPos to use when car respawns
+	setInitialPos(pos);
+}
+

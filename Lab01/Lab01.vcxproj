@@ -26,10 +26,14 @@
     <ClInclude Include="..\Car.h" />
     <ClInclude Include="..\Cheerio.h" />
     <ClInclude Include="..\cube.h" />
+    <ClInclude Include="..\l3DBillboard.h" />
     <ClInclude Include="..\LightSource.h" />
     <ClInclude Include="..\load_bmp.h" />
+    <ClInclude Include="..\Materials.h" />
+    <ClInclude Include="..\maths.h" />
     <ClInclude Include="..\mat_matr.h" />
     <ClInclude Include="..\Object.h" />
+	<ClInclude Include="..\ObjLoader.h" />
     <ClInclude Include="..\Orange.h" />
     <ClInclude Include="..\Table.h" />
     <ClInclude Include="..\TextureMappedFont.h" />
@@ -45,11 +49,15 @@
     <ClCompile Include="..\camera.cpp" />
     <ClCompile Include="..\Car.cpp" />
     <ClCompile Include="..\Cheerio.cpp" />
+    <ClCompile Include="..\l3dBillboard.cpp" />
     <ClCompile Include="..\lightDemo.cpp" />
     <ClCompile Include="..\LightSource.cpp" />
     <ClCompile Include="..\load_bmp.cpp" />
+    <ClCompile Include="..\main.cpp" />
     <ClCompile Include="..\mat_matr.cpp" />
     <ClCompile Include="..\Object.cpp" />
+    <ClCompile Include="..\ObjLoader.cpp" />
+    <ClCompile Include="..\stencil.cpp" />
     <ClCompile Include="..\Orange.cpp" />
     <ClCompile Include="..\Table.cpp" />
     <ClCompile Include="..\TextureMappedFont.cpp" />
@@ -141,14 +149,15 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\gabri\Documents\GitHub\AVTProject\contrib\tinyxml;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;freeglut.lib;glew32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;opengl32.lib;freeglut.lib;glew32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

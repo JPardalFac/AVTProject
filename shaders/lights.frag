@@ -9,6 +9,7 @@
 
 uniform sampler2D texmap;
 uniform sampler2D texmap1;
+uniform sampler2D texmap2;
 uniform sampler2D texParticle;
 uniform sampler2D texKitchenSampler;
 uniform sampler2D texFloorSampler;
@@ -117,6 +118,7 @@ void main() {
 	
 	vec4 texel;
 	vec4 texel1;
+	vec4 texel2;
 	vec4 texPart;
 	vec4 texKitchen;
 	vec4 texFloor;
@@ -131,8 +133,13 @@ void main() {
 		else if(lightsOUT[i].type == 2 && directionalLightOn){
 			calculateDirectionalLights(spec_dir,intensity_dir,i);
 		}
+		// texel = texture(texmap, DataIn[i].tex_coord); 
+		// texel1 = texture(texmap1, DataIn[i].tex_coord); 
+		// texel2 = texture(texmap2, DataIn[i].tex_coord); 
+
 		texel = texture(texmap, DataIn.tex_coord); 
 		texel1 = texture(texmap1, DataIn.tex_coord); 
+		texel2 = texture(texmap2,DataIn.tex_coord);
 	}
 	
 	// Calculates the color from the values obtained from all the lights
@@ -145,7 +152,20 @@ void main() {
 	else if(texMode == 0){ //color without texture
 		colorOut = max(total_intensity * mat.diffuse + total_spec, mat.ambient);
 	}
-	else if(texMode == 2){ //particle system (hopefully)
+	else if(texMode == 2){ //multitexturing
+		colorOut = max(total_intensity * mat.diffuse + total_spec, mat.ambient) * texel * texel1;
+		//colorOut = vec4(colorOut.x,colorOut.y,colorOut.z,0.1);
+	}
+	else if(texMode == 3){//billboard texture
+  		if(texel2.a == 0.0) discard;
+		else{
+			vec4 color = max(total_intensity*texel2 + total_spec, 0.1*texel2);
+			colorOut = vec4(color.xyz, texel2.a);
+		}
+	}
+	
+	
+	else if(texMode == 4){ //particle system (hopefully)
 		texPart = texture(texParticle, DataIn.tex_coord);
 		texPart.a = texPart.r;     //this is a trick because the particle.bmp does not have alpha channel
 		colorOut = mat.diffuse * texPart;

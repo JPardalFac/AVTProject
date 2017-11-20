@@ -11,7 +11,7 @@ public:
 	float at[3] =  { 0, 0, 0 };
 	float up[3] = { 0, 0, -1 }; 
 	float fixedPerspectiveFov = 120;
-	float movingPerspectiveFov = 60;
+	float movingPerspectiveFov = 30;
 
 	float camRot[3];
 

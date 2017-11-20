@@ -28,18 +28,20 @@
 // Use Very Simple Libs
 #include "VSShaderlib.h"
 #include "AVTmathLib.h"
-#include "VertexAttrDef.h"
+//#include "VertexAttrDef.h"
 #include "basic_geometry.h"
 #include "Car.h"
 #include "Table.h"
 #include "LightSource.h"
 #include "camera.h"
 #include "Cheerio.h"
+#include "ObjLoader.h"
 #include "ButterPacket.h"
 #include "Orange.h"
 
 #include "TGA.h"
 #include "TextureMappedFont.h"
+#include "l3dBillboard.h"
 
 #define PI 3.1415289
 #define CAPTION "AVT Light Demo"
@@ -86,7 +88,7 @@ std::array<ButterPacket, NUM_PACKETS> obstacles;
 std::array<Orange, NUM_ORANGES> oranges;
 enum direction { back, forward, left, right };
 bool move_forward = false, move_back = false, rot_left = false, rot_right = false;
-
+bool stencil = false;
 //External array storage defined in AVTmathLib.cpp
 
 /// The storage for matrices
@@ -108,7 +110,7 @@ GLint directionalLightOn_uniformId;
 GLint pointLightOn_uniformId;
 
 GLint tex_loc, tex_loc1, tex_loc2, tex_locParticle, tex_locKitchen, tex_locFloor, texMode_uniformId;
-const int numberOfTextures = 5;
+const int numberOfTextures = 6;
 GLuint TextureArray[numberOfTextures];
 
 // Font variables
@@ -143,6 +145,17 @@ bool isDirLightOn = true;
 bool pointLightOn = true;
 float directionalLightPos[4] = { 4.0f, 6.0f, 2.0f, 0.0f };//switched from the default pointlight(w = 1) to a directional light (w = 0)
 
+//Billboard
+int type = 0, billboardObjId, bubbleId;
+const int numTrees = 5;
+float TposX[numTrees];
+float TposY[numTrees];
+
+//bubbles
+const int numBubbles = 5;
+float posX[numBubbles];
+float posY[numBubbles];
+
 //particle system
 bool fireworks = false;
 int fireworkObjID = 130;
@@ -150,6 +163,7 @@ int fireworkObjID = 130;
 //test variables
 int angle = 0;
 int numCollisions = 0;
+int activeCam = 0;
 
 typedef struct {
 	float	life;		// vida
@@ -241,10 +255,50 @@ void changeSize(int w, int h) {
 		h = 1;
 	// set the viewport to be the entire window
 	glViewport(0, 0, w, h);
+	/////////////////////////////////////////////////////////////////BEGIN STENCIL MASK
+	//cam->orthoBox[0] = -30;
+	//cam->orthoBox[1] = 30;
+	//cam->orthoBox[2] = -30;
+	//cam->orthoBox[3] = 30;
+	//cam->orthoBox[4] = -100;
+	//cam->orthoBox[5] = 100;
+	//cam->setFixedOrtho();
+
+
+	//// load identity matrices for Model-View
+	//loadIdentity(VIEW);
+	//loadIdentity(MODEL);
+	//shader.Use();
+
+	//objId = 1;  //cube
+	////rotate(MODEL, 45.0f, 0.0, 0.0, 1.0);
+	//scale(MODEL, 10.0, 10.0, 10.0);
+	////translate(MODEL, -0.5f, -0.5f, -0.5f);
+
+	//// send matrices to OGL
+	//computeDerivedMatrix(PROJ_VIEW_MODEL);
+	//glUniformMatrix4fv(vm_uniformId, 1, GL_FALSE, mCompMatrix[VIEW_MODEL]);
+	//glUniformMatrix4fv(pvm_uniformId, 1, GL_FALSE, mCompMatrix[PROJ_VIEW_MODEL]);
+	//computeNormalMatrix3x3();
+	//glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
+
+	//glClear(GL_STENCIL_BUFFER_BIT);
+
+	//glStencilFunc(GL_NEVER, 0x1, 0x1);
+	//glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
+
+
+	//glBindVertexArray(mesh[objId].vao);
+	//glDrawElements(mesh[objId].type, mesh[objId].numIndexes, GL_UNSIGNED_INT, 0);
+	//glBindVertexArray(0);
+	//shader.UnUse();
+	/////////////////////////////////////////////////////////////////END STENCIL MASK
+
 	// set the projection matrix
 	*pratio = (1.0f * w) / h;
 	loadIdentity(PROJECTION);
 	cam->updateProjection(pratio);
+
 }
 
 
@@ -263,6 +317,7 @@ void checkMovements() {
 }
 
 void sendMaterial(int index) {
+	/**ORIGINAL BASIC_GEOMETRY**/
 	GLint loc;
 	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.ambient");
 	glUniform4fv(loc, 1, mesh[index].mat.ambient);
@@ -272,6 +327,8 @@ void sendMaterial(int index) {
 	glUniform4fv(loc, 1, mesh[index].mat.specular);
 	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.shininess");
 	glUniform1f(loc, mesh[index].mat.shininess);
+	loc = glGetUniformLocation(shader.getProgramIndex(), "mat.texCount");
+	glUniform1f(loc, mesh[index].mat.texCount);
 }
 
 void drawObj(int index, int texMode) {
@@ -384,21 +441,22 @@ void drawLights() {
 		//glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_spotDir").c_str()), 1, car->headlights[i]->direction);
 		glUniform1f(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].l_cutoff").c_str()), car->headlights[i]->spot_cutoff);
 		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(i) + "].type").c_str()), 1);
-		//std::cout << i << std::endl;
+
 	}
 
 	multMatrixPoint(VIEW, directionalLightPos, res);   //lightPos definido em World Coord so is converted to eye space
 	glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(SPOT_LIGHTS) + "].l_pos").c_str()), 1, res);
 	glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(SPOT_LIGHTS) + "].type").c_str()), 2);
+
 	//std::cout << SPOT_LIGHTS << std::endl;
 
 	for (int j = 0; j < POINT_LIGHTS; j++) {
 		//if (j == 2) { candles[j]->l_position[0] += angle; }
 		multMatrixPoint(VIEW, candles[j]->l_position, res);   //lightPos definido em World Coord so is converted to eye space
+		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsIn[" + std::to_string(j+SPOT_LIGHTS+DIRECTIONAL) + "].l_pos").c_str()), 1, res);
 		//std::cout << candles[j]->l_position[0] << ", " << candles[j]->l_position[1] << ", " << candles[j]->l_position[2] << std::endl;
 		glUniform4fv(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(j+SPOT_LIGHTS+DIRECTIONAL) + "].l_pos").c_str()), 1, res);
 		glUniform1i(glGetUniformLocation(shader.getProgramIndex(), ("lightsOUT[" + std::to_string(j+SPOT_LIGHTS+DIRECTIONAL) + "].type").c_str()), 0);
-		//std::cout << j + SPOT_LIGHTS + DIRECTIONAL << std::endl;
 	}
 
 }
@@ -425,6 +483,64 @@ void drawFonts() {
 	}
 }
 
+void drawBillboards() {
+	GLint loc;
+	float modelview[16];
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	float pos[3];
+	float cam[3] = {camX,camY,camZ};
+	glUniform1i(texMode_uniformId, 3); 
+
+	for (int i = 0; i < numTrees; i++) {
+			pushMatrix(MODEL);
+			//translate(MODEL, 5 + i*10.0, 0, 5 + j * 10.0);
+			translate(MODEL, TposX[i] ,0 ,TposY[i]);//5 + i * 2, 5 + j * 5, 3);
+
+			pos[0] = 5 + i*10.0; pos[1] = 0; pos[2] = 5 + i * 10.0;
+
+			if (type == 2)
+				l3dBillboardSphericalBegin(cam, pos);
+			else if (type == 3)
+				l3dBillboardCylindricalBegin(cam, pos);
+
+			objId = billboardObjId;  //quad for tree
+
+						//diffuse and ambient color are not used in the tree quads
+			loc = glGetUniformLocation(shader.getProgramIndex(), "mat.specular");
+			glUniform4fv(loc, 1, mesh[objId].mat.specular);
+			loc = glGetUniformLocation(shader.getProgramIndex(), "mat.shininess");
+			glUniform1f(loc, mesh[objId].mat.shininess);
+
+			pushMatrix(MODEL);
+			translate(MODEL, 0.0, 3.0, 0.0f);
+
+			// send matrices to OGL
+			if (type == 0 || type == 1) {     //Cheating matrix reset billboard techniques
+				computeDerivedMatrix(VIEW_MODEL);
+				memcpy(modelview, mCompMatrix[VIEW_MODEL], sizeof(float) * 16);  //save VIEW_MODEL in modelview matrix
+
+																				 //reset VIEW_MODEL
+				if (type == 0) BillboardCheatSphericalBegin();
+				else BillboardCheatCylindricalBegin();
+
+				computeDerivedMatrix_PVM(); // calculate PROJ_VIEW_MODEL
+			}
+			else computeDerivedMatrix(PROJ_VIEW_MODEL);
+
+			glUniformMatrix4fv(vm_uniformId, 1, GL_FALSE, mCompMatrix[VIEW_MODEL]);
+			glUniformMatrix4fv(pvm_uniformId, 1, GL_FALSE, mCompMatrix[PROJ_VIEW_MODEL]);
+			computeNormalMatrix3x3();
+			glUniformMatrix3fv(normal_uniformId, 1, GL_FALSE, mNormal3x3);
+			glBindVertexArray(mesh[objId].vao);
+			glDrawElements(mesh[objId].type, mesh[objId].numIndexes, GL_UNSIGNED_INT, 0);
+			popMatrix(MODEL);
+
+			popMatrix(MODEL);
+		
+	}
+}
+
 void activateTextures() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, TextureArray[2]);
@@ -438,15 +554,16 @@ void activateTextures() {
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, TextureArray[4]);
 
-
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, TextureArray[5]);
 
 	glUniform1i(tex_loc, 0+numberFonts);
 	glUniform1i(tex_loc1, 1+numberFonts);
+	glUniform1i(tex_loc2, 5);
+
 	glUniform1i(tex_locParticle, 0);
-	glUniform1i(tex_locKitchen, 2 + numberFonts);
-	glUniform1i(tex_locFloor, 3 + numberFonts);
+	glUniform1i(tex_locKitchen, 3);
+	glUniform1i(tex_locFloor, 3+ numberFonts);
 }
 
 void checkLifes() {
@@ -470,18 +587,56 @@ void restart() {
 	car->respawn();
 }
 
+
+void drawBubbles() {
+	glDepthMask(GL_FALSE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glUniform1i(texMode_uniformId, 0); // draw textured quads
+	loadIdentity(MODEL);
+	for (int i = 0; i < numBubbles; i++) {
+			pushMatrix(MODEL);
+			objId = bubbleId;  
+			sendMaterial(bubbleId);
+
+			translate(MODEL, posX[i], 1.0, posY[i]);
+			sendMatrices();
+			drawObj(bubbleId,0);
+			popMatrix(MODEL);
+		
+	}
+	glDepthMask(GL_TRUE);
+}
+
+
 void renderScene(void) {
 
 	GLint loc;
 	FrameCount++;
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
+	
+
+
+
+	//if (stencil) {
+	//	glStencilFunc(GL_NOTEQUAL, 0x1, 0x1);
+	//	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+	//}
+	//else {
+
+	//	glStencilFunc(GL_EQUAL, 0x1, 0x1);
+	//	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+	//}
+	///////////////////////////////////////////////////////////////////////////END STENCIL MASK
+	
+
 	// load identity matrices
 	loadIdentity(VIEW);
 	loadIdentity(MODEL);
-	// set the camera using a function similar to gluLookAt
-	//lookAt(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
+
 	if (cam->activeCam == cam->MOVINGPERSPECTIVE)
 		cam->sendCamCoords(camX, camY, camZ);
+
 	cam->updateLookAt(car->position);
 
 	float particle_color[4];
@@ -497,11 +652,22 @@ void renderScene(void) {
 	checkCollisions();
 	drawLights();
 
+	///LOADED CAR RENDER
+	//pushMatrix(MODEL); //first object to render
+	//translate(MODEL, car->position[0], car->position[1], car->position[2]);
+	//rotate(MODEL, car->rotation, car->rotationAxis[0], car->rotationAxis[1], car->rotationAxis[2]);
+	//scale(MODEL, 0.5, 0.5, 0.5);
+	//sendMatrices();
+	//car->drawObject(shader.getProgramIndex());
+	//popMatrix(MODEL);
+	
+
 	//draw car body	
 	sendMaterial(car->objId);
 	pushMatrix(MODEL);
 	translate(MODEL,car->position[0],car->position[1],car->position[2]);
 	rotate(MODEL,car->rotation,car->rotationAxis[0],car->rotationAxis[1],car->rotationAxis[2]);
+	
 	sendMatrices();
 	drawObj(car->objId,0);
 
@@ -516,7 +682,6 @@ void renderScene(void) {
 		sendMatrices();
 		drawObj(w->objId,0);
 		popMatrix(MODEL);
-
 	}
 	popMatrix(MODEL);
 
@@ -531,6 +696,15 @@ void renderScene(void) {
 		popMatrix(MODEL);
 	}
 	
+	//////draw table
+	pushMatrix(MODEL); 
+	sendMaterial(table->objId);
+	rotate(MODEL, table->rotation, table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
+	sendMatrices();
+	drawObj(table->objId, 2);
+	popMatrix(MODEL);
+
+
 	//draw skybox
 	for (int i = 0; i < skybox.size(); i++) {
 		//glBindTexture(GL_TEXTURE_2D, TextureArray[1]);
@@ -548,6 +722,8 @@ void renderScene(void) {
 			drawObj(skybox[i].objId, 5);
 		popMatrix(MODEL);
 	}
+
+
 
 	//draw obstacles
 	for (int i = 0; i < obstacles.size(); i++) {
@@ -574,12 +750,9 @@ void renderScene(void) {
 		drawObj(oranges[i].objId, 0);
 		popMatrix(MODEL);
 	}
-	
-	//draw table
-	sendMaterial(table->objId);
-	rotate(MODEL,table->rotation,table->rotationAxis[0], table->rotationAxis[1], table->rotationAxis[2]);
-	sendMatrices();
-	drawObj(table->objId,1);
+
+	drawBillboards();
+	drawBubbles();
 
 	if (fireworks) {
 		// draw fireworks particles //quad for particle
@@ -616,7 +789,7 @@ void renderScene(void) {
 
 				// send matrices to OGL
 				sendMatrices();
-				drawObj(objId, 2);
+				drawObj(objId, 4);
 				popMatrix(MODEL);
 			}
 			else dead_num_particles++;
@@ -632,8 +805,8 @@ void renderScene(void) {
 
 	}
 
-	drawFonts();
 	shader.UnUse();
+	drawFonts();
 
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -653,8 +826,8 @@ void initSmokeParticles(void)
 		theta = 2.0*frand()*PI;
 
 		fireworkSystem[i].x = car->position[0];
-		fireworkSystem[i].z = 0.5f;
-		fireworkSystem[i].y = - car->position[2];
+		fireworkSystem[i].y = 0.5f;
+		fireworkSystem[i].z = car->position[2];
 		fireworkSystem[i].vx = v * cos(theta);// *sin(phi);
 		fireworkSystem[i].vy = v * cos(phi);
 		fireworkSystem[i].vz = v * sin(theta) * sin(phi);
@@ -767,18 +940,21 @@ void processKeys(unsigned char key, int xx, int yy)
 		if (!pause) {
 			cam->setFixedOrtho();
 			cam->setCameraType(cam->FIXEDORTHO);
+			//activeCam = cam->FIXEDORTHO;
 		}
 		break;
 	case '2':
 		if (!pause) {
 			cam->setFixedPerspective(pratio);
 			cam->setCameraType(cam->FIXEDPERSPECTIVE);
+			//activeCam = cam->FIXEDPERSPECTIVE;
 		}
 		break;
 	case '3':
 		if (!pause) {
 			cam->setMovingPerspective(pratio);
 			cam->setCameraType(cam->MOVINGPERSPECTIVE);
+			//activeCam = cam->MOVINGPERSPECTIVE;
 		}
 		break;
 	case 'n':
@@ -798,6 +974,9 @@ void processKeys(unsigned char key, int xx, int yy)
 		break;
 	case 'e':
 		triggerSmokeParticles();
+		break;
+	case 'k':
+		stencil = !stencil;
 		break;
 	}
 
@@ -953,6 +1132,7 @@ GLuint setupShaders() {
 
 	tex_loc = glGetUniformLocation(shader.getProgramIndex(), "texmap");
 	tex_loc1 = glGetUniformLocation(shader.getProgramIndex(), "texmap1");
+	tex_loc2 = glGetUniformLocation(shader.getProgramIndex(), "texmap2");
 	tex_locParticle = glGetUniformLocation(shader.getProgramIndex(), "texParticle");
 	tex_locKitchen = glGetUniformLocation(shader.getProgramIndex(), "texKitchenSampler");
 	tex_locFloor = glGetUniformLocation(shader.getProgramIndex(), "texFloorSampler");
@@ -963,10 +1143,10 @@ GLuint setupShaders() {
 	return(shader.isProgramLinked());
 }
 
-void createCar2() {
+void createCar() {
 	
 	car = new Car();
-	car->init(0, car->initialPos, car->RotAxis, car->initialRot);
+	car->init(2, car->initialPos, car->RotAxis, car->initialRot);
 	//car.setColor(mesh);
 	objId = car->objId;
 	memcpy(mesh[car->objId].mat.ambient, car->amb, 4 * sizeof(float));
@@ -988,24 +1168,30 @@ void createCar2() {
 		mesh[w->objId].mat.texCount = w->texcount;
 		createTorus(w->initValues[0], w->initValues[1], w->initValues[2], w->initValues[3]);
 	}
-	objId++;
-	memcpy(mesh[objId].mat.ambient, car->amb, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.diffuse, car->diff, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.specular, car->spec, 4 * sizeof(float));
-	memcpy(mesh[objId].mat.emissive, car->emissive, 4 * sizeof(float));
-	mesh[objId].mat.shininess = car->shininess;
-	mesh[objId].mat.texCount = car->texcount;
-	createCube();
+	//objId++;
+	//memcpy(mesh[objId].mat.ambient, car->amb, 4 * sizeof(float));
+	//memcpy(mesh[objId].mat.diffuse, car->diff, 4 * sizeof(float));
+	//memcpy(mesh[objId].mat.specular, car->spec, 4 * sizeof(float));
+	//memcpy(mesh[objId].mat.emissive, car->emissive, 4 * sizeof(float));
+	//mesh[objId].mat.shininess = car->shininess;
+	//mesh[objId].mat.texCount = car->texcount;
+	//createCube();
 	//createTorus(0.1f, 0.2f, 15, 5);
 		//	
 
 
 }
+static const std::string carFile = "..\\carrito_split_3.obj";//carrito_split_2.obj";
+void loadCar() {
+	car = new Car();
+	objId = 2;
+	car->init(carFile,2, new float[3]{ .5f, -0.05f, -.5f }, new float[3]{ 0,1,0 }, 0);
+}
 
 void createTable() {
 	float rot = -90;
 	float rotAxis[3] = { 1.0f,0.0f,0.0f };
-	float pos[3] = {0,-0.1f,0};
+	float pos[3] = {0,0,0};
 	objId++;
 	table = new Table();
 	table->init(objId,pos,rotAxis,rot);
@@ -1015,13 +1201,13 @@ void createTable() {
 	memcpy(mesh[table->objId].mat.emissive, table->emissive,4*sizeof(float));
 	mesh[table->objId].mat.shininess = table->shininess;
 	mesh[table->objId].mat.texCount = table->texcount;
-	createQuad(table->x,table->y);
+	createQuad(50,50);
 }
 
 void createTrack() 
 {
 	float spaceBetCheerios = 1.7;
-	float initialDeviationX = table->x / 3;
+	float initialDeviationX = 50 / 3;
 
 	float rot = 0;
 	float rotAxis[3] = { 1.0f,0.0f,0.0f };
@@ -1099,6 +1285,26 @@ void createLights() {
 
 }
 
+void createBillboards() {
+	float spec[] = { 0.9f, 0.9f, 0.9f, 1.0f };
+	float emissive[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	float shininess = 1000.0f;
+	int texcount = 0;
+	objId++;
+	billboardObjId = objId;
+	memcpy(mesh[objId].mat.specular, spec, 4 * sizeof(float));
+	memcpy(mesh[objId].mat.emissive, emissive, 4 * sizeof(float));
+	mesh[objId].mat.shininess = shininess;
+	mesh[objId].mat.texCount = texcount;
+	createQuad(6, 6);
+	for (int i = 0; i < numTrees; i++) {
+		TposX[i] = rand() % 40 - 20;
+		TposY[i] = rand() % 40 - 20;
+	}
+
+	
+}
+
 void createTextures() {
 	glGenTextures(numberOfTextures, TextureArray);
 	TGA_Texture(TextureArray, "..//particle.tga", 0);
@@ -1106,6 +1312,7 @@ void createTextures() {
 	TGA_Texture(TextureArray, "..//lightwood.tga", 2);
 	TGA_Texture(TextureArray, "..//kitchen.tga", 3);
 	TGA_Texture(TextureArray, "..//floor.tga", 4);
+	TGA_Texture(TextureArray, "..//tree.tga", 5);
 	//TGA_Texture(TextureArray, "..//katsbits-rock5//rocks.tga", 3);
 }
 
@@ -1238,10 +1445,10 @@ void createSkybox() {
 		skybox[index] = Cheerio(objId, pos, rotAxis, rot);
 
 
-		float amb[4] = { .7f, .7f, .7f, 1 };
-		float diff[4] = { .7f, .7f, .7f, 1 };
-		float spec[4] = { .7f, .7f, .7f, 1 };
-		float emissive[4] = { .7f, .7f, .7f, 1 };
+		float amb[4] = { 1, 1, 1, 1 };
+		float diff[4] = { 1, 1, 1, 1 };
+		float spec[4] = { 1, 1, 1, 1 };
+		float emissive[4] = { 1, 1, 1, 1 };
 
 		memcpy(mesh[skybox[index].objId].mat.ambient, amb, 4 * sizeof(float));
 		memcpy(mesh[skybox[index].objId].mat.diffuse, diff, 4 * sizeof(float));
@@ -1255,10 +1462,34 @@ void createSkybox() {
 
 }
 
+void createBubbles() {
+	float Trans_amb[4] = { 1.0f, 1.0f, 1.0f, 0.1f };
+	float Trans_diff[4] = { 1.0f, 1.0f, 1.0f, 0.1f };
+	float Trans_spec[4] = { 1.0f, 1.0f, 1.0f, 0.1f };
+	float Trans_emissive[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	float Trans_shininess = 1;
+	int Trans_texcount = 0;
+	objId++;
+	bubbleId = objId;
+	memcpy(mesh[objId].mat.ambient, Trans_amb, 4 * sizeof(float));
+	memcpy(mesh[objId].mat.diffuse, Trans_diff, 4 * sizeof(float));
+	memcpy(mesh[objId].mat.specular, Trans_spec, 4 * sizeof(float));
+	memcpy(mesh[objId].mat.emissive, Trans_emissive, 4 * sizeof(float));
+	mesh[objId].mat.shininess = Trans_shininess;
+	mesh[objId].mat.texCount = 0;
+	createSphere(2,10);
+	for (int i = 0; i < numBubbles; i++) {
+		posX[i] = rand() % 40 - 20;
+		posY[i] = rand() % 40 - 20;
+	}
+}
+
+
 // ------------------------------------------------------------
 //
 // Model loading and OpenGL setup
 //
+// Replace the model name by your model's filename
 
 void init()
 {
@@ -1270,23 +1501,34 @@ void init()
 	int texcount = 0;
 
 	createTextures();
-	createCar2();
+	createCar();
+	//loadCar();
 	createTable();
 	createTrack();
 	createLights();
+	createBillboards();
+	createBubbles();
 	createSkybox();
 	createObstacles();
 	createOranges();
 
+	objId = 1;
+	createCube();
 
+	//std::cout << "init " << std::endl;
 	// some GL settings
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glClearStencil(0x0);
+	glEnable(GL_STENCIL_TEST);
 
 	/**TEXTUREMAPPEDFONT*/
 	font1 = new TextureMappedFont("..//font1.bmp");
+
 
 	fireworkObjID = 100;
 	mesh[objId].mat.texCount = texcount;
@@ -1303,7 +1545,7 @@ int main(int argc, char **argv) {
 
 	//  GLUT initialization
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE);
+	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_STENCIL  | GLUT_RGBA | GLUT_MULTISAMPLE);
 
 	glutInitContextVersion(3, 3);
 	glutInitContextProfile(GLUT_CORE_PROFILE);
@@ -1342,8 +1584,8 @@ int main(int argc, char **argv) {
 	printf("Version: %s\n", glGetString(GL_VERSION));
 	printf("GLSL: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-	if (!setupShaders())
-		return(1);
+	if (!setupShaders()){}
+		//return(1);
 
 	init();
 

@@ -9,7 +9,7 @@ public:
 	float spec[4] = { 0.8f, 0.8f, 0.8f, 1.0f };
 	float emissive[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	float shininess = 100;
-	int texcount = 0;
+	int texcount = 2;
 
 	float x = 50;
 	float y = 50;

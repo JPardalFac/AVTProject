@@ -63,6 +63,16 @@
     <ClCompile Include="..\Cheerio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ObjLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\l3dBillboard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\stencil.cpp">
     <ClCompile Include="..\ButterPacket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -119,6 +129,16 @@
     <ClInclude Include="..\Cheerio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\ObjLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\l3DBillboard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\maths.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Materials.h">
     <ClInclude Include="..\ButterPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

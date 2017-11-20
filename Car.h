@@ -13,6 +13,7 @@ private:
 	float xWheelpos[4] = { 0.5f ,0.5f ,-0.5f,-0.5f };
 	float yWheelpos[4] = { 0.5f ,-0.5f ,0.5f,-0.5f };
 	float speed = 0.1;
+	std::string meshName;
 	
 	bool canMoveForward = true;
 	bool canMoveBackward = true;
@@ -34,6 +35,8 @@ public:
 	LightSource* headlights[2];
 	float size3[3] = { 1, 1, 1 }; //used for scaling purposes and collision detection
 
+	void init(std::string fileName, int id, float pos[3], float rotAxis[3], float rot) override;
+	void init(std::string fileName, int id, float pos[3], float rotAxis[3], float rot, float size[3]);
 	void init(int id, float pos[3], float rotAxis[3], float rot) override;
 	void init(int id, float pos[3], float rotAxis[3], float rot, float size[3]);
 	void move(int dir) override;
